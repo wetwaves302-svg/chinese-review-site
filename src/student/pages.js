@@ -1,6 +1,6 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/ui.js';
-import { drivePreviewUrl, videoEmbedUrl, loomVideoId } from '../lib/media.js';
+import { drivePreviewUrl, videoEmbedUrl, loomVideoId, formatDuration } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
@@ -48,6 +48,26 @@ function block(kind, icon, title, count, items) {
       <header class="block-head">${icon}<h3>${title}</h3><span class="count">${count}</span></header>
       <div class="block-list">${items}</div>
     </section>`;
+}
+
+// 影片依分區歸組：未分區的「影片」在前，其餘依第一次出現的順序
+function groupVideos(videos) {
+  const groups = new Map([[null, []]]);
+  for (const v of videos) {
+    const name = v.group_name ?? null;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(v);
+  }
+  return [...groups].filter(([, list]) => list.length).map(([name, list]) => ({ name, videos: list }));
+}
+
+function videoCountLabel(videos) {
+  const total = videos.reduce((sum, v) => sum + (v.duration_seconds ?? 0), 0);
+  return `${videos.length} 支${total ? `・約 ${Math.round(total / 60)} 分鐘` : ''}`;
+}
+
+function durationLine(v) {
+  return v.duration_seconds ? `<small>⏱ ${formatDuration(v.duration_seconds)}</small>` : '';
 }
 
 function markLabel(done, text) {
@@ -202,12 +222,15 @@ async function course(ctx, courseId) {
       <div class="txt">${esc(m.title)}</div>
       ${markLabel(m.viewed, '已閱讀')}
     </a>`).join('');
-  const videos = c.videos.map((v) => `
+  const videoItem = (v) => `
     <a class="item" href="#/course/${esc(c.id)}/video/${esc(v.id)}">
       <div class="ic">${ICONS.video}</div>
-      <div class="txt">${esc(v.title)}</div>
+      <div class="txt">${esc(v.title)}${durationLine(v)}</div>
       ${markLabel(v.watched, '已看完')}
-    </a>`).join('');
+    </a>`;
+  const videos = groupVideos(c.videos).map((g) => block(
+    g.name ? 'videos extra' : 'videos', ICONS.video, esc(g.name ?? '影片'), videoCountLabel(g.videos),
+    g.videos.map(videoItem).join(''))).join('');
 
   shell(ctx, {
     back: { href: `#/grade/${c.grade}`, label: `${GRADES[c.grade - 1]}課程` },
@@ -223,7 +246,7 @@ async function course(ctx, courseId) {
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
       <div class="course-sections">
         ${materials ? block('notes', ICONS.material, '貞伊老師上課講解筆記', `${c.materials.length} 份`, materials) : ''}
-        ${videos ? block('videos', ICONS.video, '影片', `${c.videos.length} 支`, videos) : ''}
+        ${videos}
       </div>
       ${materials || videos ? '' : '<div class="card center muted">這一課的上課筆記與影片還在準備中。</div>'}`,
   });
@@ -264,7 +287,8 @@ async function video(ctx, courseId, videoId) {
   if (index < 0) return notFound(ctx, '找不到這支影片，可能已經下架。');
 
   const v = videos[index];
-  const next = videos[index + 1];
+  const sameGroup = videos.filter((x) => (x.group_name ?? null) === (v.group_name ?? null));
+  const next = sameGroup[sameGroup.indexOf(v) + 1];
   const embed = videoEmbedUrl(v.video_url);
   shell(ctx, {
     back: { href: `#/course/${courseId}`, label: data.course.title },
@@ -273,7 +297,8 @@ async function video(ctx, courseId, videoId) {
       ${embed
         ? `<div class="video-frame"><iframe src="${esc(embed)}" title="${esc(v.title)}" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen></iframe></div>`
         : `<a class="btn ghost" href="${esc(v.video_url)}" target="_blank" rel="noopener">開啟影片</a>`}
-      ${loomVideoId(v.video_url) ? '<p class="speed-note">本影片預設播放速度為 1.2 倍。覺得太快，可以點播放器上的「1.2×」，依自己的需求調整速度。</p>' : ''}
+      ${v.duration_seconds ? `<p class="video-meta">⏱ 影片長度 ${formatDuration(v.duration_seconds)}</p>` : ''}
+      ${loomVideoId(v.video_url) ? `<p class="speed-note">本影片預設播放速度為 1.2 倍${v.duration_seconds ? `，照這個速度約 ${Math.round(v.duration_seconds / 1.2 / 60)} 分鐘可以看完` : ''}。覺得太快，可以點播放器上的「1.2×」，依自己的需求調整速度。</p>` : ''}
       <div class="viewer-actions">
         <button class="btn" type="button" data-mark></button>
       </div>
@@ -281,7 +306,7 @@ async function video(ctx, courseId, videoId) {
         <div class="list">
           <a class="item" href="#/course/${esc(courseId)}/video/${esc(next.id)}">
             <div class="ic">${ICONS.video}</div>
-            <div class="txt"><small>下一支</small>${esc(next.title)}</div>
+            <div class="txt"><small>下一支</small>${esc(next.title)}${durationLine(next)}</div>
             <span class="chev" aria-hidden="true">›</span>
           </a>
         </div>` : ''}`,

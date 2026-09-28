@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { esc, SIGNATURE, errorBox, showError, withBusy, appBar } from '../lib/ui.js';
-import { driveFileId, videoEmbedUrl } from '../lib/media.js';
+import { driveFileId, videoEmbedUrl, formatDuration, parseDuration } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 
@@ -18,10 +18,11 @@ const ITEM_TYPES = {
   video: {
     table: 'course_videos',
     urlField: 'video_url',
+    extraFields: true,
     noun: '影片',
     placeholder: '標題，例如：鴻門宴 第一段',
     urlPlaceholder: 'https://www.loom.com/share/… 或 YouTube 網址',
-    hint: '貼上 Loom 或 YouTube 影片的分享連結，學生會依這裡的順序觀看。',
+    hint: '貼上 Loom 或 YouTube 影片的分享連結，學生會依這裡的順序觀看。分區留空歸在「影片」區，填了名稱（例如統測神助攻）就另成一區；長度可填「11:01」這樣的格式。',
     invalid: '這不是 Loom 或 YouTube 的影片連結，請貼上 https://www.loom.com/share/ 或 YouTube 影片頁的網址。',
     isValid: (url) => Boolean(videoEmbedUrl(url)),
   },
@@ -287,6 +288,13 @@ async function editCourse(ctx, courseId) {
   }
 }
 
+// 影片專用欄位：分區與長度
+function extraInputs(item) {
+  return `
+    <input class="input" name="group" value="${esc(item.group_name)}" placeholder="分區（留空為「影片」）" aria-label="影片分區">
+    <input class="input" name="duration" value="${item.duration_seconds ? formatDuration(item.duration_seconds) : ''}" placeholder="長度 11:01" aria-label="影片長度" inputmode="numeric">`;
+}
+
 // 上課筆記與影片共用的清單編輯：修改、排序、刪除、新增
 async function itemEditor(ctx, section, type, courseId) {
   let items = [];
@@ -294,7 +302,7 @@ async function itemEditor(ctx, section, type, courseId) {
   async function reload(message = '') {
     const { data, error } = await supabase
       .from(type.table)
-      .select(`id, title, ${type.urlField}, position`)
+      .select(`id, title, ${type.urlField}, position${type.extraFields ? ', group_name, duration_seconds' : ''}`)
       .eq('course_id', courseId)
       .order('position').order('title');
     if (!ctx.isCurrent()) return;
@@ -305,9 +313,10 @@ async function itemEditor(ctx, section, type, courseId) {
 
   function render(message) {
     const rows = items.map((item, i) => `
-      <div class="edit-row" data-id="${esc(item.id)}">
+      <div class="edit-row${type.extraFields ? ' wide' : ''}" data-id="${esc(item.id)}">
         <input class="input" name="title" value="${esc(item.title)}" aria-label="${type.noun}標題">
         <input class="input" name="url" value="${esc(item[type.urlField])}" aria-label="${type.noun}連結">
+        ${type.extraFields ? extraInputs(item) : ''}
         <div class="row-actions">
           <button class="btn small" type="button" data-act="save">儲存</button>
           <button class="btn small ghost" type="button" data-act="up" aria-label="上移" ${i === 0 ? 'disabled' : ''}>↑</button>
@@ -321,9 +330,10 @@ async function itemEditor(ctx, section, type, courseId) {
       <p class="hint" style="margin-top:-6px">${type.hint}</p>
       <div data-error>${errorBox(message)}</div>
       ${rows || `<p class="muted">還沒有${type.noun}。</p>`}
-      <form class="edit-row add" novalidate>
+      <form class="edit-row add${type.extraFields ? ' wide' : ''}" novalidate>
         <input class="input" name="title" placeholder="${esc(type.placeholder)}" aria-label="新${type.noun}標題">
         <input class="input" name="url" placeholder="${esc(type.urlPlaceholder)}" aria-label="新${type.noun}連結">
+        ${type.extraFields ? extraInputs({}) : ''}
         <div class="row-actions"><button class="btn small" type="submit">＋ 新增${type.noun}</button></div>
       </form>
       <p class="saved" data-saved role="status"></p>`;
@@ -334,7 +344,14 @@ async function itemEditor(ctx, section, type, courseId) {
     const url = row.querySelector('[name=url]').value.trim();
     if (!title) return { problem: `請輸入${type.noun}標題。` };
     if (!type.isValid(url)) return { problem: type.invalid };
-    return { values: { title, [type.urlField]: url } };
+    const values = { title, [type.urlField]: url };
+    if (type.extraFields) {
+      const duration = parseDuration(row.querySelector('[name=duration]').value);
+      if (duration === undefined) return { problem: '影片長度請填成「11:01」這樣的格式，或留空。' };
+      values.group_name = row.querySelector('[name=group]').value.trim() || null;
+      values.duration_seconds = duration;
+    }
+    return { values };
   }
 
   async function write(task, doneText) {

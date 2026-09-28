@@ -29,3 +29,20 @@ export function videoEmbedUrl(url) {
   if (youtube) return `https://www.youtube-nocookie.com/embed/${youtube}`;
   return null;
 }
+
+// 影片長度：661 → 11:01、3725 → 1:02:05
+export function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = String(seconds % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+// 後台輸入的長度：「11:01」「1:02:05」或純秒數；空白回傳 null，格式錯誤回傳 undefined
+export function parseDuration(text) {
+  const value = text.trim();
+  if (!value) return null;
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(value)) return undefined;
+  const seconds = value.split(':').reduce((total, part) => total * 60 + Number(part), 0);
+  return seconds > 0 ? seconds : undefined;
+}
