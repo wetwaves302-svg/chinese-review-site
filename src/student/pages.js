@@ -68,12 +68,32 @@ function bindMark(ctx, button, { rpcName, idKey, flagKey, id, done, labels }) {
   });
 }
 
-const DATE_FORMAT = new Intl.DateTimeFormat('zh-TW', {
-  timeZone: 'Asia/Taipei', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long',
+// 台灣時間的日期與時、分、秒
+const TAIPEI_PARTS = new Intl.DateTimeFormat('zh-TW', {
+  timeZone: 'Asia/Taipei', year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long',
+  hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23',
 });
-const TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
-  timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-});
+
+function taipeiNow() {
+  const parts = Object.fromEntries(TAIPEI_PARTS.formatToParts(new Date()).map((p) => [p.type, p.value]));
+  return {
+    year: parts.year, month: parts.month, day: parts.day, weekday: parts.weekday,
+    hour: Number(parts.hour), minute: Number(parts.minute), second: Number(parts.second),
+  };
+}
+
+const CLOCK_TICKS = Array.from({ length: 12 }, (_, i) =>
+  `<line x1="50" y1="${i % 3 ? 9 : 7}" x2="50" y2="${i % 3 ? 13 : 15}" transform="rotate(${i * 30} 50 50)" />`).join('');
+
+const CLOCK_SVG = `
+  <svg class="clock-face" viewBox="0 0 100 100" role="img" data-clock>
+    <circle cx="50" cy="50" r="46" class="rim" />
+    <g class="ticks">${CLOCK_TICKS}</g>
+    <line data-hand="hour" class="hand hour" x1="50" y1="54" x2="50" y2="28" />
+    <line data-hand="minute" class="hand minute" x1="50" y1="56" x2="50" y2="17" />
+    <line data-hand="second" class="hand second" x1="50" y1="60" x2="50" y2="14" />
+    <circle cx="50" cy="50" r="3" class="pin" />
+  </svg>`;
 
 async function home(ctx) {
   const frame = {};
@@ -97,9 +117,13 @@ async function home(ctx) {
     ...frame,
     body: `
       <div class="card hello">
-        <div class="today" data-date></div>
-        <div class="clock num" data-time></div>
-        <p>歡迎，${esc(name)}</p>
+        <div class="avatar" aria-hidden="true">貞伊</div>
+        <div class="today">
+          <div class="md num" data-md></div>
+          <div class="wk" data-wk></div>
+          <p class="greet">歡迎，${esc(name)}</p>
+        </div>
+        ${CLOCK_SVG}
       </div>
       <div class="section">
         <h3>選擇年級</h3>
@@ -111,12 +135,18 @@ async function home(ctx) {
       </div>`,
   });
 
-  const dateEl = ctx.app.querySelector('[data-date]');
-  const timeEl = ctx.app.querySelector('[data-time]');
+  const mdEl = ctx.app.querySelector('[data-md]');
+  const wkEl = ctx.app.querySelector('[data-wk]');
+  const clock = ctx.app.querySelector('[data-clock]');
+  const hands = Object.fromEntries([...clock.querySelectorAll('[data-hand]')].map((h) => [h.dataset.hand, h]));
   const tick = () => {
-    const now = new Date();
-    dateEl.textContent = DATE_FORMAT.format(now);
-    timeEl.textContent = TIME_FORMAT.format(now);
+    const t = taipeiNow();
+    mdEl.textContent = `${t.month}月${t.day}日`;
+    wkEl.textContent = `${t.weekday}・${t.year}年`;
+    hands.hour.setAttribute('transform', `rotate(${(t.hour % 12) * 30 + t.minute / 2} 50 50)`);
+    hands.minute.setAttribute('transform', `rotate(${t.minute * 6 + t.second / 10} 50 50)`);
+    hands.second.setAttribute('transform', `rotate(${t.second * 6} 50 50)`);
+    clock.setAttribute('aria-label', `現在時間 ${t.hour} 點 ${t.minute} 分`);
   };
   tick();
   const timer = setInterval(tick, 1000);
