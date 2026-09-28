@@ -25,6 +25,7 @@ export const NETWORK_ERROR = '連線失敗，請確認網路後再試一次。';
 export function brand() {
   return `
     <div class="brand">
+      <img class="brand-avatar" src="${import.meta.env.BASE_URL}teacher-avatar.png" alt="貞伊老師" width="112" height="112">
       <h1><small>貞伊老師的</small>技高國文複習站</h1>
       <p>讀上課筆記、看影片、寫三卷，把每一課弄懂</p>
     </div>`;

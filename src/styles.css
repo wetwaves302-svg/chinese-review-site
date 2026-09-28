@@ -43,6 +43,10 @@ a { color: var(--primary); }
 
 .brand { text-align: center; padding: 44px 16px 8px; }
 .brand h1 { font-family: var(--serif); font-size: 26px; margin: 0; letter-spacing: .06em; }
+.brand-avatar {
+  display: block; width: 112px; height: 112px; margin: 0 auto 12px; border-radius: 50%;
+  object-fit: cover; background: #fff; border: 3px solid var(--accent-soft);
+}
 .brand h1 small { display: block; font-size: 16px; color: var(--primary); letter-spacing: .1em; margin-bottom: 2px; }
 .brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 
