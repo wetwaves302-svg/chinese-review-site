@@ -1,0 +1,7 @@
+# 名冊種子檔含初始碼雜湊與通行碼，只在 Supabase SQL Editor 手動執行，不進版控
+supabase/seed/
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
