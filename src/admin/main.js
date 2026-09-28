@@ -1,12 +1,9 @@
 import '../styles.css';
 import { supabase } from '../lib/supabase.js';
-import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, showError, withBusy } from '../lib/ui.js';
+import { pages } from './courses.js';
+import { SIGNATURE, NETWORK_ERROR, brand, errorBox, showError, withBusy, setRoute } from '../lib/ui.js';
 
 const app = document.getElementById('app');
-
-function setRoute(hash) {
-  if (location.hash !== hash) history.replaceState(null, '', hash);
-}
 
 function renderLogin(message = '') {
   setRoute('#/login');
@@ -52,6 +49,9 @@ function renderLogin(message = '') {
   });
 }
 
+let email = '';
+let navId = 0;
+
 async function enter(session) {
   try {
     const { data: isTeacher, error } = await supabase.rpc('is_teacher');
@@ -60,61 +60,54 @@ async function enter(session) {
       await supabase.auth.signOut();
       return renderLogin('這個帳號沒有教師權限。');
     }
-
-    const { data: classes, error: classError } = await supabase
-      .from('classes')
-      .select('id, school_year, name, grade, students(count)')
-      .eq('active', true)
-      .eq('students.active', true)
-      .order('grade')
-      .order('name');
-    if (classError) throw classError;
-
-    renderHome(session.user.email, classes);
+    email = session.user.email;
+    route();
   } catch {
-    renderOffline(session);
+    renderOffline(() => enter(session));
   }
 }
 
-function renderHome(email, classes) {
-  setRoute('#/');
-  const rows = classes.map((k) => `
-    <tr>
-      <td>${esc(k.school_year)}</td>
-      <td>${esc(k.name)}</td>
-      <td>高${'一二三'[k.grade - 1]}</td>
-      <td class="num">${esc(k.students[0]?.count ?? 0)}</td>
-    </tr>`).join('');
+const ROUTES = [
+  [/^#\/$/, pages.home],
+  [/^#\/course\/new\/([123])$/, pages.newCourse],
+  [/^#\/course\/([\w-]+)$/, pages.editCourse],
+];
 
-  app.innerHTML = `
-    <div class="page wide">
-      <header class="app-bar">
-        <span class="title">教師後台</span>
-        <span class="who">${esc(email)}</span>
-      </header>
-      <main class="content">
-        <div class="card">
-          <h2>班級名冊</h2>
-          ${classes.length ? `
-            <table class="table">
-              <thead><tr><th>學年</th><th>班級</th><th>年級</th><th class="num">學生人數</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>` : '<p class="muted">目前沒有啟用中的班級。</p>'}
-        </div>
-        <div class="card">
-          <button class="btn ghost" type="button" data-logout>登出</button>
-        </div>
-      </main>
-      ${SIGNATURE}
-    </div>`;
-
-  app.querySelector('[data-logout]').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    renderLogin();
-  });
+function go(hash) {
+  setRoute(hash);
+  route();
 }
 
-function renderOffline(session) {
+function route() {
+  if (!email) return;
+  const id = ++navId;
+  const ctx = {
+    app,
+    email,
+    go,
+    isCurrent: () => id === navId,
+    fail() {
+      if (id === navId) renderOffline(route);
+    },
+    logout,
+  };
+  for (const [pattern, page] of ROUTES) {
+    const match = pattern.exec(location.hash);
+    if (match) {
+      window.scrollTo(0, 0);
+      return page(ctx, ...match.slice(1));
+    }
+  }
+  go('#/');
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+  email = '';
+  renderLogin();
+}
+
+function renderOffline(retry) {
   app.innerHTML = `
     <div class="page">
       ${brand()}
@@ -126,7 +119,9 @@ function renderOffline(session) {
       </main>
       ${SIGNATURE}
     </div>`;
-  app.querySelector('[data-retry]').addEventListener('click', () => enter(session));
+  app.querySelector('[data-retry]').addEventListener('click', retry);
 }
+
+window.addEventListener('hashchange', route);
 
 supabase.auth.getSession().then(({ data: { session } }) => (session ? enter(session) : renderLogin()));

@@ -11,6 +11,11 @@ export function digits(value) {
   return value.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[\s　]/g, '');
 }
 
+// 換頁時只改網址不留下瀏覽紀錄，例如登入畫面與登入後的首頁
+export function setRoute(hash) {
+  if (location.hash !== hash) history.replaceState(null, '', hash);
+}
+
 export const NETWORK_ERROR = '連線失敗，請確認網路後再試一次。';
 
 export function brand() {

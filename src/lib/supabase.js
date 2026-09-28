@@ -11,7 +11,12 @@ export const supabase = createClient(url, key);
 
 // 呼叫資料庫函式；連線或權限錯誤一律丟出，由呼叫端決定如何提示
 export async function rpc(name, params = {}) {
-  const { data, error } = await supabase.rpc(name, params);
-  if (error) throw error;
+  const { data, error, status } = await supabase.rpc(name, params);
+  if (error) throw Object.assign(error, { status });
   return data;
+}
+
+// 學生 token 失效時資料庫回傳 PT401（HTTP 401）
+export function isSessionError(error) {
+  return error?.status === 401 || error?.code === 'PT401';
 }
