@@ -125,6 +125,10 @@ fieldset.field legend { font-size: 14px; font-weight: 500; margin-bottom: 6px; p
 .cc-marks svg { width: 14px; height: 14px; color: var(--primary); }
 
 .lesson-head { margin-bottom: 14px; }
+.core14 { display: inline-block; font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent); border-radius: 6px; padding: 2px 8px; margin-bottom: 6px; }
+.course-card.core { border-left: 4px solid var(--accent); }
+.core14-banner { background: var(--accent); color: var(--text); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.6; }
+.core14-banner strong { display: block; font-size: 16px; }
 .lesson-head .grade-line { font-size: 13px; color: var(--muted); }
 .lesson-head h2 { font-family: var(--serif); font-size: 26px; margin: 2px 0 2px; }
 .intro { white-space: pre-line; }

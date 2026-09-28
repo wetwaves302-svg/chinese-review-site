@@ -40,6 +40,19 @@ function loading(ctx, frame) {
   shell(ctx, { ...frame, body: '<p class="muted center">載入中…</p>' });
 }
 
+// 學期清單與今天（台灣時間）所在的學期
+async function loadSemesters() {
+  const { data, error } = await supabase.from('semesters').select('id, name, starts_on, ends_on').order('starts_on');
+  if (error) throw error;
+  return data;
+}
+
+function currentSemesterId(semesters) {
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei' }).format(new Date());
+  const current = semesters.find((t) => t.starts_on <= today && (!t.ends_on || today <= t.ends_on));
+  return current?.id ?? semesters.at(-1)?.id ?? null;
+}
+
 function flash(el, text) {
   el.textContent = text;
   setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 2500);
@@ -56,7 +69,7 @@ async function home(ctx) {
   const [courses, classes] = await Promise.all([
     supabase
       .from('courses')
-      .select('id, grade, title, author, published, course_materials(count), course_videos(count)')
+      .select('id, grade, title, author, semester_id, is_core14, published, course_materials(count), course_videos(count)')
       .order('grade').order('position').order('created_at'),
     supabase
       .from('classes')
@@ -72,7 +85,7 @@ async function home(ctx) {
     const rows = courses.data.filter((c) => c.grade === i + 1).map((c) => `
       <a class="item" href="#/course/${esc(c.id)}">
         <div class="txt">${esc(c.title)}
-          <small>${[c.author, `講義 ${c.course_materials[0]?.count ?? 0}`, `影片 ${c.course_videos[0]?.count ?? 0}`].filter(Boolean).map(esc).join('・')}</small>
+          <small>${[c.semester_id, c.is_core14 ? '部定古文' : null, c.author, `講義 ${c.course_materials[0]?.count ?? 0}`, `影片 ${c.course_videos[0]?.count ?? 0}`].filter(Boolean).map(esc).join('・')}</small>
         </div>
         <span class="status ${c.published ? 'on' : ''}">${c.published ? '已上架' : '未上架'}</span>
         <span class="chev" aria-hidden="true">›</span>
@@ -122,9 +135,11 @@ async function home(ctx) {
 // 課程編輯：課程資訊、講義、影片
 // ---------------------------------------------------------------------
 
-function courseForm(course) {
+function courseForm(course, semesters) {
   const gradeOptions = GRADES.map((label, i) =>
     `<option value="${i + 1}" ${course.grade === i + 1 ? 'selected' : ''}>${label}</option>`).join('');
+  const semesterOptions = semesters.map((t) =>
+    `<option value="${esc(t.id)}" ${course.semester_id === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
   return `
     <form class="card" data-course novalidate>
       <h2>課程資訊</h2>
@@ -137,6 +152,11 @@ function courseForm(course) {
         <div class="field">
           <label for="grade">年級</label>
           <select id="grade" class="input">${gradeOptions}</select>
+        </div>
+        <div class="field">
+          <label for="semester_id">學期</label>
+          <select id="semester_id" class="input">${semesterOptions}</select>
+          <div class="hint">學期全勤加分依此判定該年級當學期的課程。</div>
         </div>
         <div class="field">
           <label for="author">作者</label>
@@ -160,7 +180,7 @@ function courseForm(course) {
         <label for="teacher_note">貞伊老師提醒（選填）</label>
         <textarea id="teacher_note" class="input" rows="2">${esc(course.teacher_note)}</textarea>
       </div>
-      <label class="check"><input id="is_core14" type="checkbox" ${course.is_core14 ? 'checked' : ''}> 部定古文</label>
+      <label class="check"><input id="is_core14" type="checkbox" ${course.is_core14 ? 'checked' : ''}> 教育部技術高中部定 14 篇古文（學生端會醒目標註）</label>
       <label class="check"><input id="published" type="checkbox" ${course.published ? 'checked' : ''}> 上架（學生看得到這一課）</label>
       <button class="btn" type="submit">儲存課程資訊</button>
       <p class="saved" data-saved role="status"></p>
@@ -173,6 +193,7 @@ function readCourseForm(form) {
   return {
     title: value('title'),
     grade: Number(value('grade')),
+    semester_id: value('semester_id') || null,
     author: value('author') || null,
     genre: value('genre') || null,
     position: Number.parseInt(value('position'), 10) || 0,
@@ -183,12 +204,23 @@ function readCourseForm(form) {
   };
 }
 
-function newCourse(ctx, gradeParam) {
+async function newCourse(ctx, gradeParam) {
   const grade = Number(gradeParam);
+  const frame = { back: { href: '#/', label: '教師後台' }, title: '新增課程' };
+  loading(ctx, frame);
+  let semesters;
+  try {
+    semesters = await loadSemesters();
+  } catch {
+    return ctx.fail();
+  }
+  if (!ctx.isCurrent()) return;
+
   shell(ctx, {
-    back: { href: '#/', label: '教師後台' },
-    title: '新增課程',
-    body: courseForm({ grade, title: '', position: 0, is_core14: false, published: false }),
+    ...frame,
+    body: courseForm({
+      grade, semester_id: currentSemesterId(semesters), title: '', position: 0, is_core14: false, published: false,
+    }, semesters),
   });
 
   const form = ctx.app.querySelector('[data-course]');
@@ -208,13 +240,21 @@ async function editCourse(ctx, courseId) {
   const frame = { back: { href: '#/', label: '教師後台' }, title: '編輯課程' };
   loading(ctx, frame);
 
-  const { data: course, error } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('id', courseId)
-    .maybeSingle();
+  let course;
+  let semesters;
+  try {
+    const [courseResult, semesterList] = await Promise.all([
+      supabase.from('courses').select('*').eq('id', courseId).maybeSingle(),
+      loadSemesters(),
+    ]);
+    if (courseResult.error) throw courseResult.error;
+    course = courseResult.data;
+    semesters = semesterList;
+  } catch {
+    if (ctx.isCurrent()) ctx.fail();
+    return;
+  }
   if (!ctx.isCurrent()) return;
-  if (error) return ctx.fail();
   if (!course) {
     return shell(ctx, { ...frame, body: '<div class="card center"><p>找不到這一課。</p><a class="btn ghost" href="#/">回教師後台</a></div>' });
   }
@@ -223,7 +263,7 @@ async function editCourse(ctx, courseId) {
     ...frame,
     title: course.title,
     body: `
-      ${courseForm(course)}
+      ${courseForm(course, semesters)}
       <section class="card" data-items="material"></section>
       <section class="card" data-items="video"></section>`,
   });

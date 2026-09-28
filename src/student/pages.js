@@ -3,6 +3,7 @@ import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/u
 import { drivePreviewUrl, videoEmbedUrl } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
+const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
 
 const ICONS = {
   material: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>',
@@ -131,9 +132,10 @@ async function grade(ctx, gradeParam) {
 
   const courses = data.courses.filter((c) => c.grade === g);
   const cards = courses.map((c) => `
-    <a class="course-card" href="#/course/${esc(c.id)}">
+    <a class="course-card${c.is_core14 ? ' core' : ''}" href="#/course/${esc(c.id)}">
+      ${c.is_core14 ? `<div class="core14">${CORE14_LABEL}</div>` : ''}
       <div class="cc-title">${esc(c.title)}</div>
-      <div class="cc-meta">${[c.author, c.genre].filter(Boolean).map(esc).join('・')}${c.is_core14 ? '<span class="tag">部定古文</span>' : ''}</div>
+      <div class="cc-meta">${[c.author, c.genre].filter(Boolean).map(esc).join('・')}</div>
       <div class="cc-marks">
         ${c.materials ? `<span>${ICONS.material}講義 ${c.materials_viewed}/${c.materials}</span>` : ''}
         ${c.videos ? `<span>${ICONS.video}影片 ${c.videos_watched}/${c.videos}</span>` : ''}
@@ -173,10 +175,11 @@ async function course(ctx, courseId) {
     title: c.title,
     body: `
       <div class="lesson-head">
-        <div class="grade-line">${GRADES[c.grade - 1]}${c.is_core14 ? '<span class="tag">部定古文</span>' : ''}</div>
+        <div class="grade-line">${GRADES[c.grade - 1]}</div>
         <h2>${esc(c.title)}</h2>
         ${c.author || c.genre ? `<div class="muted">${[c.author, c.genre].filter(Boolean).map(esc).join('・')}</div>` : ''}
       </div>
+      ${c.is_core14 ? `<div class="core14-banner"><strong>${CORE14_LABEL}</strong>本課是教育部技術高中部定 14 篇古文之一，請務必重點學習！</div>` : ''}
       ${c.intro ? `<div class="card intro">${esc(c.intro)}</div>` : ''}
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
       <div class="course-sections">
