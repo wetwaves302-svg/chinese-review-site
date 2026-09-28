@@ -146,7 +146,7 @@ async function home(ctx) {
     ...frame,
     body: `
       <div class="card hello">
-        <div class="avatar"><img src="${import.meta.env.BASE_URL}teacher-avatar.png" alt="貞伊老師" width="84" height="84"></div>
+        <div class="avatar"><img src="${import.meta.env.BASE_URL}teacher-avatar.png" alt="貞伊老師" width="128" height="128"></div>
         <div class="today">
           <div class="md num" data-md></div>
           <div class="wk" data-wk></div>

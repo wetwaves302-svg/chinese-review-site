@@ -4,7 +4,11 @@ export function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]);
 }
 
-export const SIGNATURE = '<div class="sign">國立花蓮高工｜貞伊老師製作</div>';
+export const SIGNATURE = `
+  <footer class="sign">
+    <div>國立花蓮高工｜貞伊老師製作</div>
+    <div class="source">本站題目資料來源：三民東大版、龍騰版技高國文課本，以及統測歷屆試題。</div>
+  </footer>`;
 
 // 注音等輸入法常打出全形數字與空白，一律轉成半形並去除空白
 export function digits(value) {
@@ -21,8 +25,8 @@ export const NETWORK_ERROR = '連線失敗，請確認網路後再試一次。';
 export function brand() {
   return `
     <div class="brand">
-      <h1>技高國文複習站</h1>
-      <p>讀講義、看影片、寫三卷，把每一課弄懂</p>
+      <h1><small>貞伊老師的</small>技高國文複習站</h1>
+      <p>讀上課筆記、看影片、寫三卷，把每一課弄懂</p>
     </div>`;
 }
 
@@ -36,7 +40,7 @@ export function appBar({ back, title = '', home, extra = '' }) {
       <div class="bar-inner">
         ${back
           ? `<a class="nav-btn back" href="${back.href}">${BACK_ICON}<span>${esc(back.label)}</span></a>`
-          : '<span class="bar-brand">技高國文複習站</span>'}
+          : '<span class="bar-brand">貞伊老師的技高國文複習站</span>'}
         <span class="title">${esc(title)}</span>
         ${home ? `<a class="nav-btn home" href="${home.href}">${HOME_ICON}<span>${esc(home.label)}</span></a>` : extra}
       </div>
