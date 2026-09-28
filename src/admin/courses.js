@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase.js';
-import { esc, SIGNATURE, errorBox, showError, withBusy } from '../lib/ui.js';
+import { esc, SIGNATURE, errorBox, showError, withBusy, appBar } from '../lib/ui.js';
 import { driveFileId, videoEmbedUrl } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
@@ -29,12 +29,8 @@ const ITEM_TYPES = {
 
 function shell(ctx, { back, title, body }) {
   ctx.app.innerHTML = `
-    <div class="page wide">
-      <header class="app-bar">
-        ${back ? `<a class="back" href="${back.href}">‹ ${esc(back.label)}</a>` : ''}
-        <span class="title">${esc(title)}</span>
-        <span class="who">${esc(ctx.email)}</span>
-      </header>
+    ${appBar({ back, title, home: back && back.href !== '#/' ? { href: '#/', label: '後台首頁' } : null, extra: `<span class="who">${esc(ctx.email)}</span>` })}
+    <div class="page app">
       <main class="content">${body}</main>
       ${SIGNATURE}
     </div>`;

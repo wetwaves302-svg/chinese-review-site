@@ -1,5 +1,5 @@
 import { isSessionError } from '../lib/supabase.js';
-import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox } from '../lib/ui.js';
+import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/ui.js';
 import { drivePreviewUrl, videoEmbedUrl } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
@@ -9,15 +9,13 @@ const ICONS = {
   video: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
 };
 
-// 各頁共用的外框：上方列（返回、標題、班級座號）、內容、署名
+const HOME = { href: '#/', label: '首頁' };
+
+// 各頁共用的外框：上方列（返回、標題、首頁）、內容、署名
 function shell(ctx, { back, title = '', body }) {
   ctx.app.innerHTML = `
-    <div class="page">
-      <header class="app-bar">
-        ${back ? `<a class="back" href="${back.href}">‹ ${esc(back.label)}</a>` : ''}
-        <span class="title">${esc(title)}</span>
-        <span class="who">${esc(ctx.student.class_name)} ${esc(ctx.student.seat)} 號</span>
-      </header>
+    ${appBar({ back, title, home: back && back.href !== HOME.href ? HOME : null, extra: `<span class="who">${esc(ctx.student.class_name)} ${esc(ctx.student.seat)} 號</span>` })}
+    <div class="page app">
       <main class="content">${body}</main>
       ${SIGNATURE}
     </div>`;
@@ -77,7 +75,7 @@ const TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
 });
 
 async function home(ctx) {
-  const frame = { title: '技高國文複習站' };
+  const frame = {};
   const data = await load(ctx, frame, () => ctx.call('student_courses'));
   if (!data) return;
 
@@ -104,7 +102,7 @@ async function home(ctx) {
       </div>
       <div class="section">
         <h3>選擇年級</h3>
-        <div class="list">${grades}</div>
+        <div class="list grades">${grades}</div>
       </div>
       <div class="section">
         <button class="btn ghost" type="button" data-logout>登出</button>
@@ -127,7 +125,7 @@ async function home(ctx) {
 
 async function grade(ctx, gradeParam) {
   const g = Number(gradeParam);
-  const frame = { back: { href: '#/', label: '首頁' }, title: GRADES[g - 1] };
+  const frame = { back: { href: '#/', label: '首頁' }, title: `${GRADES[g - 1]}課程` };
   const data = await load(ctx, frame, () => ctx.call('student_courses'));
   if (!data) return;
 
@@ -171,7 +169,8 @@ async function course(ctx, courseId) {
     </a>`).join('');
 
   shell(ctx, {
-    back: { href: `#/grade/${c.grade}`, label: GRADES[c.grade - 1] },
+    back: { href: `#/grade/${c.grade}`, label: `${GRADES[c.grade - 1]}課程` },
+    title: c.title,
     body: `
       <div class="lesson-head">
         <div class="grade-line">${GRADES[c.grade - 1]}${c.is_core14 ? '<span class="tag">部定古文</span>' : ''}</div>
@@ -180,8 +179,10 @@ async function course(ctx, courseId) {
       </div>
       ${c.intro ? `<div class="card intro">${esc(c.intro)}</div>` : ''}
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
-      ${materials ? `<div class="section"><h3>講義</h3><div class="list">${materials}</div></div>` : ''}
-      ${videos ? `<div class="section"><h3>影片</h3><div class="list">${videos}</div></div>` : ''}
+      <div class="course-sections">
+        ${materials ? `<div class="section"><h3>講義</h3><div class="list">${materials}</div></div>` : ''}
+        ${videos ? `<div class="section"><h3>影片</h3><div class="list">${videos}</div></div>` : ''}
+      </div>
       ${materials || videos ? '' : '<div class="card center muted">這一課的講義與影片還在準備中。</div>'}`,
   });
 }

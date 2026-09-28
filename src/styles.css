@@ -31,7 +31,6 @@ button, input, select { font: inherit; color: inherit; }
 a { color: var(--primary); }
 
 .page { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
-.page.wide { max-width: 760px; }
 .content { padding: 16px; flex: 1; }
 .sign { text-align: center; font-size: 12px; color: var(--muted); padding: 20px 16px 28px; }
 
@@ -39,13 +38,6 @@ a { color: var(--primary); }
 .brand h1 { font-family: var(--serif); font-size: 26px; margin: 0; letter-spacing: .06em; }
 .brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 
-.app-bar {
-  position: sticky; top: 0; z-index: 2; background: var(--surface);
-  border-bottom: 1px solid var(--line); padding: 12px 16px;
-  display: flex; align-items: center; gap: 10px; min-height: 52px;
-}
-.app-bar .title { font-weight: 700; flex: 1; }
-.app-bar .who { font-size: 13px; color: var(--muted); }
 
 .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
 .card + .card { margin-top: 16px; }
@@ -97,8 +89,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; margin-bottom: 6px; p
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* 第三步：首頁、年級頁、課程頁、講義與影片 */
-.app-bar .back { color: var(--primary); font-size: 14px; text-decoration: none; white-space: nowrap; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
-.app-bar .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .section { margin-top: 20px; }
 .section > h3 { font-size: 14px; color: var(--muted); font-weight: 500; margin: 0 0 8px; }
 
@@ -168,4 +158,35 @@ select.input { appearance: auto; }
 .edit-row.add { border-top: 2px dashed var(--line); margin-top: 4px; }
 @media (min-width: 720px) {
   .edit-row { grid-template-columns: 1fr 1.4fr auto; align-items: center; }
+}
+
+/* 上方列：返回、標題、首頁 */
+.app-bar { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar-inner { max-width: 960px; margin: 0 auto; padding: 8px 12px; min-height: 56px; display: flex; align-items: center; gap: 8px; }
+.bar-inner .title { flex: 1; min-width: 0; text-align: center; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-brand { font-family: var(--serif); font-weight: 700; font-size: 17px; white-space: nowrap; }
+.who { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.nav-btn {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 6px 14px 6px 10px;
+  border-radius: 999px; font-size: 15px; font-weight: 500; text-decoration: none; white-space: nowrap;
+  max-width: 42%; flex: none;
+}
+.nav-btn span { overflow: hidden; text-overflow: ellipsis; }
+.nav-btn svg { width: 20px; height: 20px; flex: none; }
+.nav-btn.back { background: var(--primary); color: #fff; }
+.nav-btn.home { background: var(--primary-soft); color: var(--primary); padding: 6px 14px 6px 12px; }
+
+/* 桌機與平板：加寬版面、多欄排列 */
+@media (min-width: 768px) {
+  .page.app { max-width: 960px; }
+  .page.app .content { padding: 24px; }
+  .list.grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; background: none; box-shadow: none; }
+  .list.grades .item { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); border-top: 0; padding: 18px 16px; flex-wrap: wrap; }
+  .course-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .course-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; align-items: start; }
+  .doc-frame { height: 80vh; }
+  .viewer-actions { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .course-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

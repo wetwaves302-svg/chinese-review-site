@@ -26,6 +26,23 @@ export function brand() {
     </div>`;
 }
 
+const BACK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const HOME_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>';
+
+// 登入後各頁共用的上方列：左側「返回」按鈕、中間標題、右側「首頁」按鈕（首頁本身改顯示 extra）
+export function appBar({ back, title = '', home, extra = '' }) {
+  return `
+    <header class="app-bar">
+      <div class="bar-inner">
+        ${back
+          ? `<a class="nav-btn back" href="${back.href}">${BACK_ICON}<span>${esc(back.label)}</span></a>`
+          : '<span class="bar-brand">技高國文複習站</span>'}
+        <span class="title">${esc(title)}</span>
+        ${home ? `<a class="nav-btn home" href="${home.href}">${HOME_ICON}<span>${esc(home.label)}</span></a>` : extra}
+      </div>
+    </header>`;
+}
+
 export function errorBox(message) {
   return message ? `<div class="error" role="alert">${esc(message)}</div>` : '';
 }
