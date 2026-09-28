@@ -41,6 +41,15 @@ function notFound(ctx, message) {
   });
 }
 
+// 課程頁的分區：標題列（圖示、名稱、數量）與清單
+function block(kind, icon, title, count, items) {
+  return `
+    <section class="block ${kind}">
+      <header class="block-head">${icon}<h3>${title}</h3><span class="count">${count}</span></header>
+      <div class="block-list">${items}</div>
+    </section>`;
+}
+
 function markLabel(done, text) {
   return done ? `<span class="done">✓ ${text}</span>` : '<span class="todo">未標記</span>';
 }
@@ -117,7 +126,7 @@ async function home(ctx) {
     ...frame,
     body: `
       <div class="card hello">
-        <div class="avatar" aria-hidden="true">貞伊</div>
+        <div class="avatar"><img src="${import.meta.env.BASE_URL}teacher-avatar.png" alt="貞伊老師" width="84" height="84"></div>
         <div class="today">
           <div class="md num" data-md></div>
           <div class="wk" data-wk></div>
@@ -167,7 +176,7 @@ async function grade(ctx, gradeParam) {
       <div class="cc-title">${esc(c.title)}</div>
       <div class="cc-meta">${[c.author, c.genre].filter(Boolean).map(esc).join('・')}</div>
       <div class="cc-marks">
-        ${c.materials ? `<span>${ICONS.material}講義 ${c.materials_viewed}/${c.materials}</span>` : ''}
+        ${c.materials ? `<span>${ICONS.material}上課筆記 ${c.materials_viewed}/${c.materials}</span>` : ''}
         ${c.videos ? `<span>${ICONS.video}影片 ${c.videos_watched}/${c.videos}</span>` : ''}
       </div>
     </a>`).join('');
@@ -213,10 +222,10 @@ async function course(ctx, courseId) {
       ${c.intro ? `<div class="card intro">${esc(c.intro)}</div>` : ''}
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
       <div class="course-sections">
-        ${materials ? `<div class="section"><h3>講義</h3><div class="list">${materials}</div></div>` : ''}
-        ${videos ? `<div class="section"><h3>影片</h3><div class="list">${videos}</div></div>` : ''}
+        ${materials ? block('notes', ICONS.material, '貞伊老師上課講解筆記', `${c.materials.length} 份`, materials) : ''}
+        ${videos ? block('videos', ICONS.video, '影片', `${c.videos.length} 支`, videos) : ''}
       </div>
-      ${materials || videos ? '' : '<div class="card center muted">這一課的講義與影片還在準備中。</div>'}`,
+      ${materials || videos ? '' : '<div class="card center muted">這一課的上課筆記與影片還在準備中。</div>'}`,
   });
 }
 
@@ -225,7 +234,7 @@ async function material(ctx, courseId, materialId) {
   const data = await load(ctx, frame, () => ctx.call('student_course', { p_course_id: courseId }));
   if (!data) return;
   const m = data.ok && data.course.materials.find((x) => x.id === materialId);
-  if (!m) return notFound(ctx, '找不到這份講義，可能已經下架。');
+  if (!m) return notFound(ctx, '找不到這份上課筆記，可能已經下架。');
 
   const preview = drivePreviewUrl(m.drive_url);
   shell(ctx, {
@@ -237,7 +246,7 @@ async function material(ctx, courseId, materialId) {
         <button class="btn" type="button" data-mark></button>
         <a class="btn ghost" href="${esc(m.drive_url)}" target="_blank" rel="noopener">在新分頁開啟</a>
       </div>
-      <p class="hint center">講義顯示不出來或太小，請點「在新分頁開啟」。</p>`,
+      <p class="hint center">上課筆記顯示不出來或太小，請點「在新分頁開啟」。</p>`,
   });
 
   bindMark(ctx, ctx.app.querySelector('[data-mark]'), {

@@ -1,21 +1,22 @@
 /* 配色與字體依定稿樣稿（CLAUDE.md 第六節） */
 :root {
-  --bg: #FBF8F1;
+  --bg: #FAF9F6;
   --surface: #FFFFFF;
-  --text: #202C39;
-  --muted: #5C6470;
-  --line: #E8E2D0;
-  --soft: #F4EFE2;
-  --primary: #283845;
-  --primary-soft: #FBF1D3;
-  --accent: #F29559;
-  --accent-soft: #FDEBDD;
-  --accent-ink: #9A4F1E;
-  --ok: #2F7A4A;
-  --ok-soft: #E6F2EA;
+  --text: #1A1A2E;
+  --muted: #5A5A72;
+  --line: #E0E0E8;
+  --soft: #F1F1EC;
+  --primary: #006992;
+  --primary-soft: #E3F1F6;
+  --accent: #ECA400;
+  --accent-soft: #FDF1CF;
+  --accent-ink: #7A5300;
+  --ok: #2D6A4F;
+  --ok-soft: #E6F1EB;
+  --core-soft: #FDF1F5; --core-line: #E7A3BC; --core-ink: #9A4A68;
   --warn: #B8432A;
   --warn-soft: #FCECE6;
-  --shadow: 0 1px 2px rgba(32, 44, 57, .05), 0 2px 8px rgba(32, 44, 57, .04);
+  --shadow: 0 2px 12px rgba(0, 105, 146, .08);
   --radius: 12px;
   --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
@@ -23,7 +24,12 @@
 
 * { box-sizing: border-box; }
 body {
-  margin: 0; background: var(--bg); color: var(--text);
+  margin: 0; color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(45, 106, 79, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 106, 79, .06) 1px, transparent 1px);
+  background-size: 24px 24px;
   font-family: var(--sans); font-size: 15px; line-height: 1.7;
   -webkit-text-size-adjust: 100%;
 }
@@ -97,6 +103,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; margin-bottom: 6px; p
   width: 64px; height: 64px; flex: none; border-radius: 50%; display: grid; place-items: center;
   background: var(--primary-soft); color: var(--primary); font-family: var(--serif); font-weight: 700; font-size: 18px;
   border: 3px solid var(--accent-soft); overflow: hidden;
+  background: #fff;
 }
 .hello .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .hello .today { flex: 1; min-width: 0; }
@@ -147,10 +154,10 @@ fieldset.field legend { font-size: 14px; font-weight: 500; margin-bottom: 6px; p
 .cc-marks svg { width: 14px; height: 14px; color: var(--primary); }
 
 .lesson-head { margin-bottom: 14px; }
-.core14 { display: inline-block; font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent); border-radius: 6px; padding: 2px 8px; margin-bottom: 6px; }
-.course-card.core { border-left: 4px solid var(--accent); }
-.core14-banner { background: var(--accent); color: var(--text); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.6; }
-.core14-banner strong { display: block; font-size: 16px; }
+.core14 { display: inline-block; font-size: 13px; font-weight: 700; color: var(--core-ink); background: var(--core-soft); border-radius: 6px; padding: 2px 8px; margin-bottom: 6px; }
+.course-card.core { border-left: 4px solid var(--core-line); }
+.core14-banner { background: var(--core-soft); color: var(--text); border-left: 5px solid var(--core-line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.6; }
+.core14-banner strong { display: block; font-size: 16px; color: var(--core-ink); }
 .lesson-head .grade-line { font-size: 13px; color: var(--muted); }
 .lesson-head h2 { font-family: var(--serif); font-size: 26px; margin: 2px 0 2px; }
 .intro { white-space: pre-line; }
@@ -216,4 +223,19 @@ select.input { appearance: auto; }
 }
 @media (min-width: 1024px) {
   .course-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* 課程頁分區 */
+.block { margin-top: 20px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--line); }
+.block-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; }
+.block-head svg { width: 20px; height: 20px; flex: none; }
+.block-head h3 { margin: 0; font-size: 16px; flex: 1; }
+.block-head .count { font-size: 13px; font-weight: 500; }
+.block.notes .block-head { background: var(--primary-soft); color: var(--primary); border-bottom: 2px solid var(--primary); }
+.block.videos .block-head { background: var(--accent-soft); color: var(--accent-ink); border-bottom: 2px solid var(--accent); }
+.block.videos .item .ic { background: var(--accent-soft); color: var(--accent-ink); }
+.block-list .item + .item { border-top: 1px solid var(--line); }
+@media (min-width: 768px) {
+  .course-sections .block { margin-top: 0; }
+  .course-sections { gap: 20px; margin-top: 20px; }
 }

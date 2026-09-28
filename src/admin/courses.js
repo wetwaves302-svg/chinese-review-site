@@ -8,7 +8,7 @@ const ITEM_TYPES = {
   material: {
     table: 'course_materials',
     urlField: 'drive_url',
-    noun: '講義',
+    noun: '上課筆記',
     placeholder: '標題，例如：老師上課筆記 第五冊 L01',
     urlPlaceholder: 'https://drive.google.com/file/d/…/view',
     hint: '貼上雲端硬碟檔案的分享連結。檔案請設為「知道連結的任何人都能檢視」，學生才打得開。',
@@ -85,7 +85,7 @@ async function home(ctx) {
     const rows = courses.data.filter((c) => c.grade === i + 1).map((c) => `
       <a class="item" href="#/course/${esc(c.id)}">
         <div class="txt">${esc(c.title)}
-          <small>${[c.semester_id, c.is_core14 ? '部定古文' : null, c.author, `講義 ${c.course_materials[0]?.count ?? 0}`, `影片 ${c.course_videos[0]?.count ?? 0}`].filter(Boolean).map(esc).join('・')}</small>
+          <small>${[c.semester_id, c.is_core14 ? '部定古文' : null, c.author, `上課筆記 ${c.course_materials[0]?.count ?? 0}`, `影片 ${c.course_videos[0]?.count ?? 0}`].filter(Boolean).map(esc).join('・')}</small>
         </div>
         <span class="status ${c.published ? 'on' : ''}">${c.published ? '已上架' : '未上架'}</span>
         <span class="chev" aria-hidden="true">›</span>
@@ -132,7 +132,7 @@ async function home(ctx) {
 }
 
 // ---------------------------------------------------------------------
-// 課程編輯：課程資訊、講義、影片
+// 課程編輯：課程資訊、上課筆記、影片
 // ---------------------------------------------------------------------
 
 function courseForm(course, semesters) {
@@ -287,7 +287,7 @@ async function editCourse(ctx, courseId) {
   }
 }
 
-// 講義與影片共用的清單編輯：修改、排序、刪除、新增
+// 上課筆記與影片共用的清單編輯：修改、排序、刪除、新增
 async function itemEditor(ctx, section, type, courseId) {
   let items = [];
 
