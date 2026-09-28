@@ -1,6 +1,6 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/ui.js';
-import { drivePreviewUrl, videoEmbedUrl } from '../lib/media.js';
+import { drivePreviewUrl, videoEmbedUrl, loomVideoId } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
@@ -234,6 +234,7 @@ async function video(ctx, courseId, videoId) {
       ${embed
         ? `<div class="video-frame"><iframe src="${esc(embed)}" title="${esc(v.title)}" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen></iframe></div>`
         : `<a class="btn ghost" href="${esc(v.video_url)}" target="_blank" rel="noopener">開啟影片</a>`}
+      ${loomVideoId(v.video_url) ? '<p class="speed-note">本影片預設播放速度為 1.2 倍。覺得太快，可以點播放器上的「1.2×」，依自己的需求調整速度。</p>' : ''}
       <div class="viewer-actions">
         <button class="btn" type="button" data-mark></button>
       </div>
