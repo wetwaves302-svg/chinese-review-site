@@ -1,6 +1,6 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox } from '../lib/ui.js';
-import { drivePreviewUrl, loomEmbedUrl } from '../lib/media.js';
+import { drivePreviewUrl, videoEmbedUrl } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 
@@ -222,13 +222,13 @@ async function video(ctx, courseId, videoId) {
 
   const v = videos[index];
   const next = videos[index + 1];
-  const embed = loomEmbedUrl(v.video_url);
+  const embed = videoEmbedUrl(v.video_url);
   shell(ctx, {
     back: { href: `#/course/${courseId}`, label: data.course.title },
     title: v.title,
     body: `
       ${embed
-        ? `<div class="video-frame"><iframe src="${esc(embed)}" title="${esc(v.title)}" allow="fullscreen" allowfullscreen></iframe></div>`
+        ? `<div class="video-frame"><iframe src="${esc(embed)}" title="${esc(v.title)}" allow="fullscreen; picture-in-picture; encrypted-media" allowfullscreen></iframe></div>`
         : `<a class="btn ghost" href="${esc(v.video_url)}" target="_blank" rel="noopener">開啟影片</a>`}
       <div class="viewer-actions">
         <button class="btn" type="button" data-mark></button>

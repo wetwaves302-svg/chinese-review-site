@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { esc, SIGNATURE, errorBox, showError, withBusy } from '../lib/ui.js';
-import { driveFileId, loomVideoId } from '../lib/media.js';
+import { driveFileId, videoEmbedUrl } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 
@@ -20,10 +20,10 @@ const ITEM_TYPES = {
     urlField: 'video_url',
     noun: '影片',
     placeholder: '標題，例如：鴻門宴 第一段',
-    urlPlaceholder: 'https://www.loom.com/share/…',
-    hint: '貼上 Loom 影片的分享連結，學生會依這裡的順序觀看。',
-    invalid: '這不是 Loom 的影片分享連結，請貼上 https://www.loom.com/share/ 開頭的網址。',
-    isValid: (url) => Boolean(loomVideoId(url)),
+    urlPlaceholder: 'https://www.loom.com/share/… 或 YouTube 網址',
+    hint: '貼上 Loom 或 YouTube 影片的分享連結，學生會依這裡的順序觀看。',
+    invalid: '這不是 Loom 或 YouTube 的影片連結，請貼上 https://www.loom.com/share/ 或 YouTube 影片頁的網址。',
+    isValid: (url) => Boolean(videoEmbedUrl(url)),
   },
 };
 
