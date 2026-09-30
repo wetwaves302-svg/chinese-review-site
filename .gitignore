@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 .DS_Store
+
+# 出題素材（教用版等），不得提交
+materials/
