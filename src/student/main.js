@@ -20,6 +20,8 @@ const ROUTES = [
   [/^#\/course\/([\w-]+)$/, pages.course],
   [/^#\/course\/([\w-]+)\/material\/([\w-]+)$/, pages.material],
   [/^#\/course\/([\w-]+)\/video\/([\w-]+)$/, pages.video],
+  [/^#\/course\/([\w-]+)\/session\/([\w-]+)(?:\/(\d+))?$/, pages.session],
+  [/^#\/course\/([\w-]+)\/sessions\/(basic|advanced|challenge|past)$/, pages.sessions],
 ];
 
 let student = null;
