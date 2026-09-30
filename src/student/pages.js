@@ -1,7 +1,7 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/ui.js';
 import { drivePreviewUrl, videoEmbedUrl, loomVideoId, formatDuration } from '../lib/media.js';
-import { papersSection, bindPapers, sessionPage, sessionsPage } from './quiz.js';
+import { papersSection, bindPapers, sessionPage, sessionsPage, reviewListPage, questionPage } from './quiz.js';
 
 const GRADES = ['高一', '高二', '高三'];
 const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
@@ -215,9 +215,10 @@ async function course(ctx, courseId) {
   const data = await load(ctx, frame, () => Promise.all([
     ctx.call('student_course', { p_course_id: courseId }),
     ctx.call('student_papers', { p_course_id: courseId }),
+    ctx.call('student_review_summary', { p_course_id: courseId }),
   ]));
   if (!data) return;
-  const [courseData, papers] = data;
+  const [courseData, papers, summary] = data;
   if (!courseData.ok) return notFound(ctx, '找不到這一課，可能已經下架。');
 
   const c = courseData.course;
@@ -249,7 +250,7 @@ async function course(ctx, courseId) {
       ${c.is_core14 ? `<div class="core14-banner"><strong>${CORE14_LABEL}</strong>本課是教育部技術高中部定 14 篇古文之一，請務必重點學習！</div>` : ''}
       ${c.intro ? `<div class="card intro">${esc(c.intro)}</div>` : ''}
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
-      ${papers.ok ? papersSection(c.id, papers) : ''}
+      ${papers.ok ? papersSection(c.id, papers, summary) : ''}
       <div class="course-sections">
         ${materials ? block('notes', ICONS.material, '貞伊老師上課講解筆記', `${c.materials.length} 份`, materials) : ''}
         ${videos}
@@ -329,6 +330,8 @@ export const pages = {
   home, grade, course, material, video,
   session: (ctx, courseId, sessionId, index) => sessionPage(ctx, shell, courseId, sessionId, index),
   sessions: (ctx, courseId, paper) => sessionsPage(ctx, shell, courseId, paper),
+  review: (ctx, courseId, kind) => reviewListPage(ctx, shell, courseId, kind),
+  question: (ctx, courseId, questionId, mode) => questionPage(ctx, shell, courseId, questionId, mode),
 };
 
 export function renderOffline(app, retry) {

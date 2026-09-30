@@ -326,3 +326,17 @@ select.input { appearance: auto; }
 .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; flex: none; }
 .mark.right { background: var(--ok-soft); color: var(--ok); }
 .mark.wrong { background: var(--warn-soft); color: var(--warn); }
+.mark.fav { background: var(--accent-soft); color: var(--accent-ink); }
+
+/* 第五步：錯題本、收藏 */
+.review-links { margin-top: 14px; box-shadow: none; border: 1px solid var(--line); }
+.fav-btn {
+  margin-left: auto; border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 3px 12px; font-size: 13px; color: var(--accent-ink); cursor: pointer;
+}
+.fav-btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+.bar { height: 8px; background: var(--soft); border-radius: 999px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.mastery-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.mastery-top b { font-size: 22px; color: var(--ok); }
+.mastery .bar > i { background: var(--ok); }

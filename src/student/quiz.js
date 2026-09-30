@@ -42,7 +42,25 @@ function paperAction(p) {
   return { label: p.used ? '再寫一次' : '開始作答' };
 }
 
-export function papersSection(courseId, data) {
+function reviewLinks(courseId, summary) {
+  if (!summary?.ok) return '';
+  const mastery = summary.mistakes ? `已重做答對 ${summary.mastered}／${summary.mistakes} 題` : '目前沒有錯題';
+  return `
+    <div class="list review-links">
+      <a class="item" href="#/course/${esc(courseId)}/mistakes">
+        <span class="mark wrong">✕</span>
+        <div class="txt">錯題本<small>${summary.mistakes} 題・${mastery}</small></div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+      <a class="item" href="#/course/${esc(courseId)}/favorites">
+        <span class="mark fav">★</span>
+        <div class="txt">我的收藏<small>${summary.favorites} 題</small></div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
+    </div>`;
+}
+
+export function papersSection(courseId, data, summary) {
   const papers = data.papers.filter((p) => p.pool > 0);
   if (!papers.length) return '';
 
@@ -76,6 +94,7 @@ export function papersSection(courseId, data) {
         ${score}
         <div class="paper-grid">${cards}</div>
         <p class="hint" data-start-error></p>
+        ${reviewLinks(courseId, summary)}
       </div>
     </section>`;
 }
@@ -169,7 +188,7 @@ function resultBlock(courseId, q) {
     ${review}`;
 }
 
-function questionBody(courseId, q) {
+function questionBody(courseId, q, hint = '選好答案就會立刻看到解析，選了就不能更改。') {
   const answered = Boolean(q.result);
   const options = LETTERS.map((letter, i) => {
     const classes = ['opt'];
@@ -184,7 +203,7 @@ function questionBody(courseId, q) {
       ? `<img class="q-image" src="${q.image}" alt="${esc(q.stem)}">`
       : `<p class="q-stem">${esc(q.stem)}</p>`}
     <div class="options${q.image ? ' letters' : ''}">${options}</div>
-    ${answered ? resultBlock(courseId, q) : '<p class="hint center">選好答案就會立刻看到解析，選了就不能更改。</p>'}`;
+    ${answered ? resultBlock(courseId, q) : `<p class="hint center">${hint}</p>`}`;
 }
 
 export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
@@ -223,7 +242,7 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
       ${progressBar(courseId, data, index)}
       ${group ? passageCard(group) : ''}
       <div class="card question">
-        <div class="q-meta">第 ${index + 1} 題${pastLabel(q)}</div>
+        <div class="q-meta">第 ${index + 1} 題${pastLabel(q)}${q.result ? favButton(q) : ''}</div>
         <div data-question>${questionBody(courseId, q)}</div>
       </div>
       <div class="q-foot">
@@ -236,6 +255,7 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
   for (const button of ctx.app.querySelectorAll('[data-answer]')) {
     button.addEventListener('click', () => answer(ctx, shell, courseId, data, index, button.dataset.answer));
   }
+  bindFavorite(ctx, q);
 }
 
 async function answer(ctx, shell, courseId, data, index, letter) {
@@ -302,4 +322,151 @@ export async function sessionsPage(ctx, shell, courseId, paper) {
       <span class="chev" aria-hidden="true">›</span>
     </a>`).join('');
   shell(ctx, { ...frame, body: rows ? `<div class="list">${rows}</div>` : '<div class="card center muted">還沒有作答紀錄。</div>' });
+}
+
+// ---------------------------------------------------------------------
+// 收藏
+// ---------------------------------------------------------------------
+
+function favButton(q) {
+  return `<button type="button" class="fav-btn" data-fav aria-pressed="${q.favorite ? 'true' : 'false'}">${q.favorite ? '★ 已收藏' : '☆ 收藏'}</button>`;
+}
+
+function bindFavorite(ctx, q) {
+  const button = ctx.app.querySelector('[data-fav]');
+  if (!button) return;
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      const res = await ctx.call('student_favorite', { p_question_id: q.id, p_on: !q.favorite });
+      if (res.ok) q.favorite = res.favorite;
+    } catch (error) {
+      if (isSessionError(error)) return ctx.fail(error);
+    } finally {
+      button.disabled = false;
+    }
+    button.outerHTML = favButton(q);
+    bindFavorite(ctx, q);
+  });
+}
+
+// ---------------------------------------------------------------------
+// 錯題本與我的收藏
+// ---------------------------------------------------------------------
+
+const REVIEW_KINDS = {
+  mistakes: { title: '錯題本', empty: '目前沒有錯題，繼續保持！', hint: '第一次答錯的題目會收進這裡。點進去重做，重做只影響目前掌握度，不改變分數。' },
+  favorites: { title: '我的收藏', empty: '還沒有收藏的題目。作答後按「☆ 收藏」就會出現在這裡。', hint: '點進去可以看題目、自己的答案與解析。' },
+};
+
+function retryStatus(item) {
+  if (!item.retry_count) return '還沒重做';
+  return item.retry_correct ? `✓ 重做答對（共重做 ${item.retry_count} 次）` : `已重做 ${item.retry_count} 次，還沒答對`;
+}
+
+export async function reviewListPage(ctx, shell, courseId, kind) {
+  const meta = REVIEW_KINDS[kind];
+  const frame = { back: { href: `#/course/${courseId}`, label: '回課程' }, title: meta.title };
+  shell(ctx, { ...frame, body: '<p class="muted center">載入中…</p>' });
+  let data;
+  try {
+    data = await ctx.call('student_review_list', { p_course_id: courseId, p_kind: kind });
+  } catch (error) {
+    return ctx.fail(error);
+  }
+  if (!ctx.isCurrent()) return;
+
+  const items = data.items ?? [];
+  const mastered = items.filter((item) => item.retry_correct).length;
+  const rows = items.map((item) => {
+    const mode = kind === 'mistakes' ? 'retry' : 'review';
+    const label = item.has_image ? '（圖片題）' : item.stem.length > 30 ? `${item.stem.slice(0, 30)}…` : item.stem;
+    const tags = [
+      PAPERS[item.paper]?.name,
+      item.past_year ? `${item.past_year} 年統測` : null,
+    ].filter(Boolean).join('・');
+    const status = kind === 'mistakes' ? retryStatus(item) : item.first_correct ? '當時答對' : '當時答錯';
+    return `
+      <a class="item" href="#/course/${esc(courseId)}/q/${esc(item.question_id)}/${mode}">
+        <span class="mark ${kind === 'mistakes' ? (item.retry_correct ? 'right' : 'wrong') : 'fav'}">${kind === 'mistakes' ? (item.retry_correct ? '✓' : '✕') : '★'}</span>
+        <div class="txt">${esc(label)}<small>${esc(tags)}・${esc(status)}</small></div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>`;
+  }).join('');
+
+  shell(ctx, {
+    back: { href: `#/course/${courseId}`, label: data.course_title ?? '回課程' },
+    title: meta.title,
+    body: `
+      ${kind === 'mistakes' && items.length ? `
+        <div class="card mastery">
+          <div class="mastery-top"><span>目前掌握度</span><b class="num">${mastered}／${items.length}</b></div>
+          <div class="bar"><i style="width:${Math.round((mastered / items.length) * 100)}%"></i></div>
+        </div>` : ''}
+      <p class="hint">${meta.hint}</p>
+      ${rows ? `<div class="list">${rows}</div>` : `<div class="card center muted">${meta.empty}</div>`}`,
+  });
+}
+
+// 單題頁：retry（錯題重做，先不顯示答案）或 review（收藏複習，顯示當時的作答與解析）
+export async function questionPage(ctx, shell, courseId, questionId, mode) {
+  const listKind = mode === 'retry' ? 'mistakes' : 'favorites';
+  const frame = { back: { href: `#/course/${courseId}/${listKind}`, label: REVIEW_KINDS[listKind].title } };
+  shell(ctx, { ...frame, body: '<p class="muted center">載入中…</p>' });
+  let data;
+  try {
+    data = await ctx.call('student_question', { p_question_id: questionId, p_mode: mode });
+  } catch (error) {
+    return ctx.fail(error);
+  }
+  if (!ctx.isCurrent()) return;
+  if (!data.ok) return shell(ctx, { ...frame, body: '<div class="card center"><p>找不到這一題。</p></div>' });
+
+  const q = { ...data.question, result: data.result };
+  render();
+
+  function render() {
+    const firstNote = mode === 'retry'
+      ? `第一次作答選 (${data.first.answer})，答錯了。${data.retry.count ? `已重做 ${data.retry.count} 次。` : ''}重做只影響目前掌握度，不改變分數。`
+      : `這題你當時選 (${data.first.answer})，${data.first.correct ? '答對了' : '答錯了'}。`;
+    shell(ctx, {
+      ...frame,
+      title: mode === 'retry' ? '錯題重做' : '收藏複習',
+      body: `
+        <p class="hint">${firstNote}</p>
+        ${data.group ? passageCard(data.group) : ''}
+        <div class="card question">
+          <div class="q-meta">${esc(PAPERS[data.paper]?.name ?? '')}${pastLabel(q)}${favButton(q)}</div>
+          <div data-question>${questionBody(courseId, q, '選好答案就會看到解析，答錯可以再重做。')}</div>
+        </div>
+        <div class="q-foot">
+          <a class="btn ghost" href="#/course/${esc(courseId)}/${listKind}">‹ ${REVIEW_KINDS[listKind].title}</a>
+          ${mode === 'retry' && q.result ? '<button class="btn" type="button" data-again>再重做一次</button>' : '<span></span>'}
+        </div>`,
+    });
+
+    for (const button of ctx.app.querySelectorAll('[data-answer]')) {
+      button.addEventListener('click', () => retry(button.dataset.answer));
+    }
+    ctx.app.querySelector('[data-again]')?.addEventListener('click', () => {
+      q.result = null;
+      render();
+    });
+    bindFavorite(ctx, q);
+  }
+
+  async function retry(letter) {
+    for (const button of ctx.app.querySelectorAll('[data-answer]')) button.disabled = true;
+    try {
+      const res = await ctx.call('student_retry', { p_question_id: questionId, p_answer: letter });
+      if (!res.ok) throw new Error(res.error);
+      q.result = res.result;
+      data.retry.count += 1;
+    } catch (error) {
+      if (isSessionError(error)) return ctx.fail(error);
+      for (const button of ctx.app.querySelectorAll('[data-answer]')) button.disabled = false;
+      return;
+    }
+    render();
+  }
 }
