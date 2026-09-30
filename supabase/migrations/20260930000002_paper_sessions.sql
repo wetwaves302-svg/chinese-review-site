@@ -289,6 +289,9 @@ begin
                'stem',     q.stem,
                'options',  jsonb_build_array(q.option_a, q.option_b, q.option_c, q.option_d),
                'group_id', q.group_id,
+               'past_year',   q.past_year,
+               'past_exam',   q.past_exam,
+               'past_number', q.past_number,
                'image',    case when i.question_id is not null
                                 then 'data:' || i.mime_type || ';base64,' || i.data_base64 end,
                'result',   case when a.question_id is not null

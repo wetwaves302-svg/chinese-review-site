@@ -136,6 +136,13 @@ function progressBar(courseId, data, current) {
     </div>`;
 }
 
+// 歷屆試題標出年份與原卷題號，例如「110 年統測 第 4 題」
+function pastLabel(q) {
+  if (!q.past_year) return '';
+  const number = q.past_number ? ` 第 ${q.past_number} 題` : '';
+  return `<span class="past-tag">${q.past_year} 年${esc(q.past_exam ?? '統測')}${number}</span>`;
+}
+
 function passageCard(group) {
   return `
     <details class="card passage" open>
@@ -216,7 +223,7 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
       ${progressBar(courseId, data, index)}
       ${group ? passageCard(group) : ''}
       <div class="card question">
-        <div class="q-meta">第 ${index + 1} 題</div>
+        <div class="q-meta">第 ${index + 1} 題${pastLabel(q)}</div>
         <div data-question>${questionBody(courseId, q)}</div>
       </div>
       <div class="q-foot">
