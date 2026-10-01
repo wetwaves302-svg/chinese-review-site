@@ -39,6 +39,11 @@ function progressBar(courseId, data, current) {
     </div>`;
 }
 
+// 複選題提示共有幾個答案（交卷前不透露是哪幾個）
+function multiTag(item) {
+  return `<span class="tag">複選${item.answer_count ? `・共 ${item.answer_count} 個答案` : ''}</span>`;
+}
+
 function optionLabel(item, i) {
   return item.kind === 'select' ? `(${LETTERS[i]}) ${item.options[i]}` : item.options[i];
 }
@@ -79,8 +84,8 @@ function itemBody(item, n, submitted) {
   return `
     <div class="r-item">
       ${item.quote ? `<blockquote class="r-quote">${esc(item.quote)}</blockquote>` : ''}
-      ${item.label || n ? `<p class="r-label">${n ? `(${n}) ` : ''}${esc(item.label)}${item.kind === 'multi' ? '<span class="tag">複選</span>' : ''}</p>` : ''}
-      ${!item.label && !n && item.kind === 'multi' ? '<p class="r-label"><span class="tag">複選</span></p>' : ''}
+      ${item.label || n ? `<p class="r-label">${n ? `(${n}) ` : ''}${esc(item.label)}${item.kind === 'multi' ? multiTag(item) : ''}</p>` : ''}
+      ${!item.label && !n && item.kind === 'multi' ? `<p class="r-label">${multiTag(item)}</p>` : ''}
       ${control}
       ${submitted ? verdict(item) : ''}
     </div>`;
