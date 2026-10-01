@@ -16,6 +16,7 @@ const tokenStore = {
 
 const ROUTES = [
   [/^#\/$/, pages.home],
+  [/^#\/scores$/, pages.scores],
   [/^#\/grade\/([123])$/, pages.grade],
   [/^#\/course\/([\w-]+)$/, pages.course],
   [/^#\/course\/([\w-]+)\/material\/([\w-]+)$/, pages.material],
@@ -23,6 +24,7 @@ const ROUTES = [
   [/^#\/course\/([\w-]+)\/session\/([\w-]+)(?:\/(\d+))?$/, pages.session],
   [/^#\/course\/([\w-]+)\/sessions\/(basic|advanced|challenge|past)$/, pages.sessions],
   [/^#\/course\/([\w-]+)\/(mistakes|favorites)$/, pages.review],
+  [/^#\/course\/([\w-]+)\/analysis$/, pages.analysis],
   [/^#\/course\/([\w-]+)\/q\/([\w-]+)\/(retry|review)$/, pages.question],
 ];
 

@@ -340,3 +340,57 @@ select.input { appearance: auto; }
 .mastery-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
 .mastery-top b { font-size: 22px; color: var(--ok); }
 .mastery .bar > i { background: var(--ok); }
+
+/* 第六步：我的成績、本課分析 */
+.mark.stat { background: var(--primary-soft); color: var(--primary); font-size: 14px; }
+.term-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.term-head h2 { margin: 0; }
+.term-total { display: flex; align-items: baseline; gap: 4px; }
+.term-total small { color: var(--muted); }
+.term-total b { font-size: 32px; color: var(--ok); }
+.term-line { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; margin: 12px 0 6px; }
+.term-line b { white-space: nowrap; }
+.term-line b.ok { color: var(--ok); }
+.att-list { margin-top: 10px; border-top: 1px solid var(--line); }
+.att-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.att-row a { font-weight: 500; text-decoration: none; color: var(--text); }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.chip { font-size: 12px; border-radius: 999px; padding: 2px 8px; background: var(--soft); color: var(--muted); }
+.chip.on { background: var(--ok-soft); color: var(--ok); font-weight: 500; }
+.score-card .sc-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.score-card h3 { font-family: var(--serif); font-size: 20px; margin: 0; }
+.sc-papers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.sc-paper { background: var(--soft); border-radius: 10px; padding: 8px; text-align: center; display: flex; flex-direction: column; }
+.sc-paper b { font-size: 22px; color: var(--primary); }
+.sc-paper small { color: var(--muted); font-size: 12px; }
+.sc-past { margin-top: 10px; font-size: 14px; }
+.sc-past b { color: var(--ok); }
+.sc-links { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; }
+.cats { display: grid; gap: 12px; margin: 12px 0; }
+.cat-row small { color: var(--muted); font-size: 12px; }
+.cat-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; font-size: 15px; }
+.cat-row.empty .cat-top { color: var(--muted); }
+.cat-row .bar > i { background: var(--primary); }
+.cat-row.weak .bar > i { background: var(--warn); }
+.cat-row.weak .cat-top b { color: var(--warn); }
+.weak-tag { font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+.cat-summary { font-size: 15px; line-height: 1.7; }
+.dist-grid { display: grid; gap: 12px; }
+.dist-card h3 { margin: 0 0 8px; font-size: 16px; }
+.dist-card + .dist-card { margin-top: 0; }
+.dist { width: 100%; height: auto; display: block; }
+.dist .area { fill: var(--primary-soft); }
+.dist .line { fill: none; stroke: var(--primary); stroke-width: 2; }
+.dist .axis { stroke: var(--muted); stroke-width: 1; }
+.dist .tick { font-size: 10px; fill: var(--muted); text-anchor: middle; }
+.dist .mean { stroke: var(--muted); stroke-dasharray: 4 3; }
+.dist .mean-label { font-size: 10px; fill: var(--muted); text-anchor: middle; }
+.dist .me { stroke: var(--accent); stroke-width: 2; }
+.dist .me-dot { fill: var(--accent); }
+.dist .me-label { font-size: 11px; font-weight: 700; fill: var(--accent-ink); }
+.dist-facts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; margin-top: 6px; }
+.dist-facts b { color: var(--primary); }
+.dist-wait { color: var(--muted); font-size: 14px; line-height: 1.7; margin: 0 0 6px; }
+@media (min-width: 768px) {
+  .dist-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

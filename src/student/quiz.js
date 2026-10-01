@@ -57,6 +57,11 @@ function reviewLinks(courseId, summary) {
         <div class="txt">我的收藏<small>${summary.favorites} 題</small></div>
         <span class="chev" aria-hidden="true">›</span>
       </a>
+      <a class="item" href="#/course/${esc(courseId)}/analysis">
+        <span class="mark stat">%</span>
+        <div class="txt">本課分析<small>六大類答對率・整體學習位置</small></div>
+        <span class="chev" aria-hidden="true">›</span>
+      </a>
     </div>`;
 }
 

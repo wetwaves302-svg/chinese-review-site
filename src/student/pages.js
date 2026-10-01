@@ -2,6 +2,7 @@ import { isSessionError } from '../lib/supabase.js';
 import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/ui.js';
 import { drivePreviewUrl, videoEmbedUrl, loomVideoId, formatDuration } from '../lib/media.js';
 import { papersSection, bindPapers, sessionPage, sessionsPage, reviewListPage, questionPage } from './quiz.js';
+import { scoresPage, analysisPage } from './scores.js';
 
 const GRADES = ['高一', '高二', '高三'];
 const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
@@ -9,6 +10,7 @@ const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
 const ICONS = {
   material: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>',
   video: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+  score: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
 };
 
 const HOME = { href: '#/', label: '首頁' };
@@ -158,6 +160,15 @@ async function home(ctx) {
       <div class="section">
         <h3>選擇年級</h3>
         <div class="list grades">${grades}</div>
+      </div>
+      <div class="section">
+        <div class="list">
+          <a class="item" href="#/scores">
+            <div class="ic">${ICONS.score}</div>
+            <div class="txt">我的成績<small>各課挑戰積分、歷屆練習加分、學期全勤進度</small></div>
+            <span class="chev" aria-hidden="true">›</span>
+          </a>
+        </div>
       </div>
       <div class="section">
         <button class="btn ghost" type="button" data-logout>登出</button>
@@ -332,6 +343,8 @@ export const pages = {
   sessions: (ctx, courseId, paper) => sessionsPage(ctx, shell, courseId, paper),
   review: (ctx, courseId, kind) => reviewListPage(ctx, shell, courseId, kind),
   question: (ctx, courseId, questionId, mode) => questionPage(ctx, shell, courseId, questionId, mode),
+  scores: (ctx) => scoresPage(ctx, shell),
+  analysis: (ctx, courseId) => analysisPage(ctx, shell, courseId),
 };
 
 export function renderOffline(app, retry) {
