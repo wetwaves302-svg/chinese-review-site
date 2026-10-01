@@ -17,13 +17,13 @@ function attendanceRow(c) {
   return `
     <div class="att-row">
       <a href="#/course/${esc(c.id)}">${esc(c.title)}</a>
-      <div class="chips">${chip(c.basic, '基礎')}${chip(c.advanced, '進階')}${chip(c.challenge, '挑戰')}${chip(c.past, '歷屆')}</div>
+      <div class="chips">${c.reading == null ? '' : chip(c.reading, '理解')}${chip(c.basic, '基礎')}${chip(c.advanced, '進階')}${chip(c.challenge, '挑戰')}${chip(c.past, '歷屆')}</div>
     </div>`;
 }
 
 function termCard(term) {
   const att = term.attendance;
-  const done = att.courses.filter((c) => c.basic && c.advanced && c.challenge && c.past).length;
+  const done = att.courses.filter((c) => c.reading !== false && c.basic && c.advanced && c.challenge && c.past).length;
   const attendance = att.total
     ? `
       <div class="term-line">
@@ -31,7 +31,7 @@ function termCard(term) {
         <b class="${term.attendance_bonus ? 'ok' : ''}">${term.attendance_bonus ? '+3 分・已達成' : `${done}／${att.total} 課`}</b>
       </div>
       <div class="bar"><i style="width:${Math.round((done / att.total) * 100)}%"></i></div>
-      <p class="hint">每一課的基礎卷、進階卷、挑戰卷與歷屆試題都至少完成一次，學期總成績加 3 分。</p>
+      <p class="hint">每一課的基礎理解測驗（有的課才有）、基礎卷、進階卷、挑戰卷與歷屆試題都至少完成一次，學期總成績加 3 分。</p>
       <div class="att-list">${att.courses.map(attendanceRow).join('')}</div>`
     : `<p class="hint">${GRADES[att.grade - 1]}本學期的課程還沒有上架，全勤進度之後會顯示在這裡。</p>`;
 
@@ -65,6 +65,7 @@ function courseScoreCard(c) {
         </div>
         <div class="challenge-score"><span>本課挑戰積分</span><b class="num">${fmt(c.challenge_score)}</b><small>／135</small></div>
       </div>
+      ${c.has_reading ? `<div class="sc-reading">基礎理解測驗 ${c.reading_score == null ? '<span class="muted">尚未交卷（必做）</span>' : `<b class="num">${fmt(c.reading_score)}</b> 分`}</div>` : ''}
       <div class="sc-papers">${papers}</div>
       <div class="sc-past">
         歷屆試題 ${c.done.past ? `練習 ${c.done.past} 次・<b>期末總成績 +0.5 分</b>` : '尚未練習（完成一次即可加 0.5 分）'}

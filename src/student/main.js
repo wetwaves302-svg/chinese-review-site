@@ -25,6 +25,7 @@ const ROUTES = [
   [/^#\/course\/([\w-]+)\/sessions\/(basic|advanced|challenge|past)$/, pages.sessions],
   [/^#\/course\/([\w-]+)\/(mistakes|favorites)$/, pages.review],
   [/^#\/course\/([\w-]+)\/analysis$/, pages.analysis],
+  [/^#\/course\/([\w-]+)\/reading(?:\/(\d+|submit))?$/, pages.reading],
   [/^#\/course\/([\w-]+)\/q\/([\w-]+)\/(retry|review)$/, pages.question],
 ];
 

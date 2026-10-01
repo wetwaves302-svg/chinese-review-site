@@ -12,6 +12,7 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 
 const START_ERRORS = {
   locked: '完成基礎卷後才能寫這一卷。',
+  reading_first: '先完成基礎理解測驗，才能寫基礎卷。',
   no_attempts_left: '這一卷已經寫滿三次了。',
   no_questions: '這一卷還沒有題目。',
   not_found: '找不到這一課，可能已經下架。',
@@ -35,7 +36,7 @@ function paperStatus(p) {
 }
 
 function paperAction(p) {
-  if (!p.unlocked) return { label: '完成基礎卷後開放', disabled: true };
+  if (!p.unlocked) return { label: p.paper === 'basic' ? '完成基礎理解測驗後開放' : '完成基礎卷後開放', disabled: true };
   if (p.open_session) return { label: '繼續作答' };
   if (p.max_attempts && p.used >= p.max_attempts) return { label: '已寫滿三次', disabled: true };
   if (p.paper === 'past') return { label: p.completed ? '再練習一次' : '開始練習' };
@@ -65,9 +66,27 @@ function reviewLinks(courseId, summary) {
     </div>`;
 }
 
+// 基礎理解測驗：基礎卷之前的必做測驗，獨立計分，只能交卷一次
+function readingCard(courseId, r) {
+  if (!r) return '';
+  const status = r.submitted ? `已交卷・<b>${formatScore(r.score)}</b> 分`
+    : r.answered ? `已作答 ${r.answered}／${r.items} 項，尚未交卷` : `共 ${r.items} 項，尚未作答`;
+  const label = r.submitted ? '看答案與解析' : r.answered ? '繼續作答' : '開始作答';
+  return `
+    <div class="paper-card reading-card">
+      <div class="pc-head">
+        <h4>基礎理解測驗</h4>
+        <span class="tag must">必做</span><span class="tag">獨立計分・滿分 100</span>
+      </div>
+      <div class="pc-status">${status}</div>
+      <p class="hint">依課文段落檢查基本理解，只能交卷一次；完成後才開放基礎卷。</p>
+      <a class="btn${r.submitted ? ' ghost' : ''}" href="#/course/${esc(courseId)}/reading">${label}</a>
+    </div>`;
+}
+
 export function papersSection(courseId, data, summary) {
   const papers = data.papers.filter((p) => p.pool > 0);
-  if (!papers.length) return '';
+  if (!papers.length && !data.reading) return '';
 
   const cards = papers.map((p) => {
     const meta = PAPERS[p.paper];
@@ -96,6 +115,7 @@ export function papersSection(courseId, data, summary) {
     <section class="block quiz">
       <header class="block-head"><h3>作答</h3><span class="count">三卷各可寫三次，取最高分</span></header>
       <div class="quiz-body">
+        ${readingCard(courseId, data.reading)}
         ${score}
         <div class="paper-grid">${cards}</div>
         <p class="hint" data-start-error></p>

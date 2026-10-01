@@ -394,3 +394,35 @@ select.input { appearance: auto; }
 @media (min-width: 768px) {
   .dist-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* 基礎理解測驗 */
+.reading-card { margin-bottom: 12px; }
+.reading-card .pc-head { justify-content: flex-start; }
+.reading-card .tag { margin-left: 0; }
+.reading-card .hint { margin: 0; }
+.reading-card .btn { text-align: center; text-decoration: none; }
+.dot.answered { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.card.reading .q-stem { font-weight: 500; }
+.r-item { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.r-label { font-size: 16px; font-weight: 500; margin: 0 0 8px; line-height: 1.6; }
+.r-quote { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); font-family: var(--serif); font-size: 15px; line-height: 1.8; border-radius: 0 8px 8px 0; }
+.r-select { width: 100%; font-size: 16px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
+.r-select:focus { outline: 2px solid var(--accent); }
+.opt .box { width: 18px; height: 18px; flex: none; border: 2px solid var(--muted); border-radius: 50%; margin-top: 3px; }
+.options.multi .opt .box { border-radius: 4px; }
+.opt.chosen { border-color: var(--primary); background: var(--primary-soft); font-weight: 500; }
+.opt.chosen .box { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 3px var(--primary-soft); }
+.options.multi .opt.chosen .box { box-shadow: none; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8l3 3 7-7' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E") center/12px no-repeat; }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.wrong { border-color: var(--warn); background: var(--warn-soft); }
+.r-verdict { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; font-weight: 700; margin: 10px 0 4px; }
+.r-verdict span { font-weight: 400; font-size: 13px; color: var(--muted); }
+.r-verdict.right { color: var(--ok); }
+.r-verdict.part { color: var(--accent-ink); }
+.r-verdict.wrong { color: var(--warn); }
+.r-explain { font-size: 15px; line-height: 1.75; margin: 0; }
+.r-points { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.sc-reading { margin-top: 10px; font-size: 14px; }
+.sc-reading b { color: var(--primary); font-size: 18px; }
+.opt.right.missed { border-style: dashed; background: var(--surface); }
+.opt.right.missed::after { content: '漏選'; margin-left: auto; font-size: 12px; color: var(--ok); white-space: nowrap; }
