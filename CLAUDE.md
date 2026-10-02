@@ -8,3 +8,4 @@
 - 資料庫中的相關題組與資料已刪除，**不得重新匯入或重建**這些題組。
 - 不要再新增任何會匯入、種入（seed）基礎理解測驗題組的腳本或 migration。
 - 取消後，基礎卷不再需要先完成基礎理解測驗，成績與全勤計算也不再包含它。
+- 已於 `20261002000003_remove_reading_test.sql` 還原 `student_papers`、`student_start_paper`、`student_scores` 並移除相關函式；`reading_*` 資料表已無資料，暫時保留為空表。

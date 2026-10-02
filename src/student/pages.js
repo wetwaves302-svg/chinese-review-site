@@ -3,7 +3,6 @@ import { esc, SIGNATURE, NETWORK_ERROR, brand, errorBox, appBar } from '../lib/u
 import { drivePreviewUrl, videoEmbedUrl, loomVideoId, formatDuration } from '../lib/media.js';
 import { papersSection, bindPapers, sessionPage, sessionsPage, reviewListPage, questionPage } from './quiz.js';
 import { scoresPage, analysisPage } from './scores.js';
-import { readingPage } from './reading.js';
 
 const GRADES = ['高一', '高二', '高三'];
 const CORE14_LABEL = '★ 部定 14 篇古文・重點學習';
@@ -346,7 +345,6 @@ export const pages = {
   question: (ctx, courseId, questionId, mode) => questionPage(ctx, shell, courseId, questionId, mode),
   scores: (ctx) => scoresPage(ctx, shell),
   analysis: (ctx, courseId) => analysisPage(ctx, shell, courseId),
-  reading: (ctx, courseId, index) => readingPage(ctx, shell, courseId, index),
 };
 
 export function renderOffline(app, retry) {
