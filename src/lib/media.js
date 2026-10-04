@@ -46,3 +46,76 @@ export function parseDuration(text) {
   const seconds = value.split(':').reduce((total, part) => total * 60 + Number(part), 0);
   return seconds > 0 ? seconds : undefined;
 }
+
+// ---------------------------------------------------------------------
+// 自動偵測影片長度（教師後台用）：成功回傳秒數，偵測不到回傳 null
+//   Loom：公開的 oEmbed 資料內含 duration
+//   YouTube：oEmbed 不含長度，改用官方播放器 API 載入影片後讀取
+// ---------------------------------------------------------------------
+
+async function loomDuration(id) {
+  const response = await fetch(`https://www.loom.com/v1/oembed?url=${encodeURIComponent(`https://www.loom.com/share/${id}`)}`);
+  if (!response.ok) return null;
+  const seconds = Math.round(Number((await response.json()).duration));
+  return seconds > 0 ? seconds : null;
+}
+
+let youtubeApi = null;
+
+function loadYoutubeApi() {
+  youtubeApi ??= new Promise((resolve, reject) => {
+    if (window.YT?.Player) return resolve(window.YT);
+    const previous = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { previous?.(); resolve(window.YT); };
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.onerror = () => { youtubeApi = null; reject(new Error('youtube api')); };
+    document.head.append(script);
+  });
+  return youtubeApi;
+}
+
+async function youtubeDuration(id) {
+  const YT = await loadYoutubeApi();
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+  holder.append(document.createElement('div'));
+  document.body.append(holder);
+  try {
+    return await new Promise((resolve) => {
+      let timer;
+      const finish = (seconds) => { clearInterval(timer); resolve(seconds > 0 ? Math.round(seconds) : null); };
+      const player = new YT.Player(holder.firstChild, {
+        videoId: id,
+        width: 200,
+        height: 113,
+        events: {
+          onReady: () => {
+            // 影片資料載入後才讀得到長度，最多等 8 秒
+            let tries = 0;
+            timer = setInterval(() => {
+              const seconds = player.getDuration?.() ?? 0;
+              if (seconds > 0 || ++tries >= 32) finish(seconds);
+            }, 250);
+          },
+          onError: () => finish(0),
+        },
+      });
+      setTimeout(() => finish(0), 12000);
+    });
+  } finally {
+    holder.remove();
+  }
+}
+
+export async function detectDuration(url) {
+  try {
+    const loom = loomVideoId(url);
+    if (loom) return await loomDuration(loom);
+    const youtube = youtubeVideoId(url);
+    if (youtube) return await youtubeDuration(youtube);
+  } catch {
+    // 偵測失敗時由老師手動填寫
+  }
+  return null;
+}

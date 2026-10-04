@@ -402,3 +402,13 @@ select.input { appearance: auto; }
 .options.multi .opt.chosen .box { box-shadow: none; background: var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8l3 3 7-7' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E") center/12px no-repeat; }
 .opt.right { border-color: var(--ok); background: var(--ok-soft); }
 .opt.wrong { border-color: var(--warn); background: var(--warn-soft); }
+/* 第七步：教師成績統計 */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table.stats { font-size: 14px; white-space: nowrap; }
+.table.stats th, .table.stats td { padding: 8px 8px; }
+.table.stats small { color: var(--muted); font-size: 12px; }
+.table.stats tr.idle td { color: var(--muted); }
+.table.stats b.ok { color: var(--ok); }
+.stat-line { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin: 4px 0 10px; }
+.stat-line b { color: var(--primary); }
+.card h2 .tag { font-weight: 400; }

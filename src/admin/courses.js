@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { esc, SIGNATURE, errorBox, showError, withBusy, appBar } from '../lib/ui.js';
-import { driveFileId, videoEmbedUrl, formatDuration, parseDuration } from '../lib/media.js';
+import { driveFileId, videoEmbedUrl, formatDuration, parseDuration, detectDuration } from '../lib/media.js';
 
 const GRADES = ['高一', '高二', '高三'];
 
@@ -22,7 +22,7 @@ const ITEM_TYPES = {
     noun: '影片',
     placeholder: '標題，例如：鴻門宴 第一段',
     urlPlaceholder: 'https://www.loom.com/share/… 或 YouTube 網址',
-    hint: '貼上 Loom 或 YouTube 影片的分享連結，學生會依這裡的順序觀看。分區留空歸在「影片」區，填了名稱（例如統測神助攻）就另成一區；長度可填「11:01」這樣的格式。',
+    hint: '貼上 Loom 或 YouTube 影片的分享連結，學生會依這裡的順序觀看。分區留空歸在「影片」區，填了名稱（例如統測神助攻）就另成一區；影片長度會在貼上連結後自動偵測，偵測不到時再手動填「11:01」這樣的格式。',
     invalid: '這不是 Loom 或 YouTube 的影片連結，請貼上 https://www.loom.com/share/ 或 YouTube 影片頁的網址。',
     isValid: (url) => Boolean(videoEmbedUrl(url)),
   },
@@ -112,6 +112,11 @@ async function home(ctx) {
   shell(ctx, {
     ...frame,
     body: `
+      <div class="card">
+        <h2>成績統計</h2>
+        <p class="hint" style="margin-top:-6px">依學期與班級查看每位學生的三卷最高分、本課挑戰積分、歷屆練習與學期全勤，並可匯出期末總檔。</p>
+        <a class="btn" href="#/stats">查看成績統計與匯出</a>
+      </div>
       <div class="card">
         <h2>課程管理</h2>
         ${blocks}
@@ -292,7 +297,7 @@ async function editCourse(ctx, courseId) {
 function extraInputs(item) {
   return `
     <input class="input" name="group" value="${esc(item.group_name)}" placeholder="分區（留空為「影片」）" aria-label="影片分區">
-    <input class="input" name="duration" value="${item.duration_seconds ? formatDuration(item.duration_seconds) : ''}" placeholder="長度 11:01" aria-label="影片長度" inputmode="numeric">`;
+    <input class="input" name="duration" value="${item.duration_seconds ? formatDuration(item.duration_seconds) : ''}" placeholder="長度（自動偵測）" aria-label="影片長度" inputmode="numeric">`;
 }
 
 // 上課筆記與影片共用的清單編輯：修改、排序、刪除、新增
@@ -339,7 +344,35 @@ async function itemEditor(ctx, section, type, courseId) {
       <p class="saved" data-saved role="status"></p>`;
   }
 
-  function readRow(row) {
+  // 貼上或修改影片連結後，長度欄留空就自動偵測並填入
+  async function fillDuration(row) {
+    const input = row.querySelector('[name=duration]');
+    const url = row.querySelector('[name=url]').value.trim();
+    if (!input || input.value.trim() || !type.isValid(url)) return;
+    input.placeholder = '偵測長度中…';
+    const seconds = await detectDuration(url);
+    input.placeholder = '長度（自動偵測）';
+    if (seconds && !input.value.trim() && row.querySelector('[name=url]').value.trim() === url) {
+      input.value = formatDuration(seconds);
+    }
+  }
+
+  // 已存在但沒有長度的影片：載入後自動偵測並存回
+  async function backfillDurations() {
+    const missing = items.filter((item) => !item.duration_seconds);
+    if (!type.extraFields || !missing.length) return;
+    const found = await Promise.all(missing.map(async (item) => ({ item, seconds: await detectDuration(item[type.urlField]) })));
+    const updates = found.filter((f) => f.seconds);
+    if (!updates.length || !ctx.isCurrent()) return;
+    const results = await Promise.all(updates.map(({ item, seconds }) =>
+      supabase.from(type.table).update({ duration_seconds: seconds }).eq('id', item.id)));
+    if (results.some((r) => r.error) || !ctx.isCurrent()) return;
+    await reload();
+    flash(section.querySelector('[data-saved]'), `已自動補上 ${updates.length} 支影片的長度。`);
+  }
+
+  async function readRow(row) {
+    if (type.extraFields) await fillDuration(row);
     const title = row.querySelector('[name=title]').value.trim();
     const url = row.querySelector('[name=url]').value.trim();
     if (!title) return { problem: `請輸入${type.noun}標題。` };
@@ -379,7 +412,7 @@ async function itemEditor(ctx, section, type, courseId) {
     showError(section, '');
 
     if (button.dataset.act === 'save') {
-      const { values, problem } = readRow(row);
+      const { values, problem } = await readRow(row);
       if (problem) return showError(section, problem);
       await withBusy(button, '儲存中…', () =>
         write(() => supabase.from(type.table).update(values).eq('id', item.id), `已儲存「${values.title}」。`));
@@ -399,15 +432,22 @@ async function itemEditor(ctx, section, type, courseId) {
   section.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.target;
-    const { values, problem } = readRow(form);
+    const { values, problem } = await readRow(form);
     if (problem) return showError(section, problem);
     const position = items.length ? Math.max(...items.map((item) => item.position)) + 1 : 0;
     await withBusy(form.querySelector('[type=submit]'), '新增中…', () =>
       write(() => supabase.from(type.table).insert({ ...values, course_id: courseId, position }), `已新增「${values.title}」。`));
   });
 
+  if (type.extraFields) {
+    section.addEventListener('change', (event) => {
+      if (event.target.name === 'url') fillDuration(event.target.closest('.edit-row'));
+    });
+  }
+
   section.innerHTML = '<p class="muted">載入中…</p>';
   await reload();
+  await backfillDurations();
 }
 
 export const pages = { home, newCourse, editCourse };
