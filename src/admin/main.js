@@ -53,19 +53,43 @@ function renderLogin(message = '') {
 let email = '';
 let navId = 0;
 
-async function enter(session) {
+// 登入狀態失效（過期或被撤銷）時資料庫回 401／403，這不是網路問題，要請老師重新登入
+function isAuthError(error, status) {
+  return status === 401 || status === 403
+    || ['PGRST301', 'PGRST302', '42501'].includes(error?.code) || /jwt/i.test(error?.message ?? '');
+}
+
+// 只清掉這個瀏覽器存的登入狀態；即使連不上伺服器也能完成
+async function forgetSession() {
   try {
-    const { data: isTeacher, error } = await supabase.rpc('is_teacher');
-    if (error) throw error;
-    if (!isTeacher) {
-      await supabase.auth.signOut();
-      return renderLogin('這個帳號沒有教師權限。');
-    }
-    email = session.user.email;
-    route();
+    await supabase.auth.signOut({ scope: 'local' });
   } catch {
-    renderOffline(() => enter(session));
+    // 清不掉也照樣回登入畫面
   }
+  email = '';
+}
+
+async function enter(session) {
+  let result;
+  try {
+    result = await supabase.rpc('is_teacher');
+  } catch {
+    return renderOffline(start);
+  }
+  const { data: isTeacher, error, status } = result;
+  if (error) {
+    if (isAuthError(error, status)) {
+      await forgetSession();
+      return renderLogin('登入已過期，請重新登入。');
+    }
+    return renderOffline(start);
+  }
+  if (!isTeacher) {
+    await forgetSession();
+    return renderLogin('這個帳號沒有教師權限。');
+  }
+  email = session.user.email;
+  route();
 }
 
 const ROUTES = [
@@ -104,8 +128,7 @@ function route() {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
-  email = '';
+  await forgetSession();
   renderLogin();
 }
 
@@ -117,13 +140,28 @@ function renderOffline(retry) {
         <div class="card center">
           ${errorBox(NETWORK_ERROR)}
           <button class="btn" type="button" data-retry>重新連線</button>
+          <button class="btn ghost" type="button" data-relogin>重新登入</button>
         </div>
       </main>
       ${SIGNATURE}
     </div>`;
   app.querySelector('[data-retry]').addEventListener('click', retry);
+  app.querySelector('[data-relogin]').addEventListener('click', async () => {
+    await forgetSession();
+    renderLogin();
+  });
 }
 
 window.addEventListener('hashchange', route);
 
-supabase.auth.getSession().then(({ data: { session } }) => (session ? enter(session) : renderLogin()));
+// 每次（含重新連線）都重新取得登入狀態，過期的會在這裡自動更新
+async function start() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session ? enter(session) : renderLogin();
+  } catch {
+    renderOffline(start);
+  }
+}
+
+start();
