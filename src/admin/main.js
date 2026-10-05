@@ -73,8 +73,8 @@ async function enter(session) {
   let result;
   try {
     result = await supabase.rpc('is_teacher');
-  } catch {
-    return renderOffline(start);
+  } catch (error) {
+    return renderOffline(start, describe('確認教師身分', error));
   }
   const { data: isTeacher, error, status } = result;
   if (error) {
@@ -82,7 +82,7 @@ async function enter(session) {
       await forgetSession();
       return renderLogin('登入已過期，請重新登入。');
     }
-    return renderOffline(start);
+    return renderOffline(start, describe('確認教師身分', error, status));
   }
   if (!isTeacher) {
     await forgetSession();
@@ -112,8 +112,8 @@ function route() {
     email,
     go,
     isCurrent: () => id === navId,
-    fail() {
-      if (id === navId) renderOffline(route);
+    fail(error, step = '讀取資料') {
+      if (id === navId) renderOffline(route, describe(step, error));
     },
     logout,
   };
@@ -132,7 +132,13 @@ async function logout() {
   renderLogin();
 }
 
-function renderOffline(retry) {
+// 給老師截圖回報用的錯誤細節：哪一步、狀態碼、錯誤代碼與訊息（不含任何登入資料）
+function describe(step, error, status) {
+  const parts = [step, status ? `狀態 ${status}` : '', error?.code ?? error?.name ?? '', error?.message ?? ''];
+  return parts.filter(Boolean).join('｜').slice(0, 300);
+}
+
+function renderOffline(retry, detail = '') {
   app.innerHTML = `
     <div class="page">
       ${brand()}
@@ -141,10 +147,12 @@ function renderOffline(retry) {
           ${errorBox(NETWORK_ERROR)}
           <button class="btn" type="button" data-retry>重新連線</button>
           <button class="btn ghost" type="button" data-relogin>重新登入</button>
+          ${detail ? `<p class="hint" data-detail></p>` : ''}
         </div>
       </main>
       ${SIGNATURE}
     </div>`;
+  if (detail) app.querySelector('[data-detail]').textContent = `錯誤細節：${detail}`;
   app.querySelector('[data-retry]').addEventListener('click', retry);
   app.querySelector('[data-relogin]').addEventListener('click', async () => {
     await forgetSession();
@@ -159,8 +167,8 @@ async function start() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     return session ? enter(session) : renderLogin();
-  } catch {
-    renderOffline(start);
+  } catch (error) {
+    renderOffline(start, describe('讀取登入狀態', error));
   }
 }
 

@@ -139,8 +139,8 @@ export async function statsPage(ctx) {
   let data;
   try {
     data = await loadData();
-  } catch {
-    return ctx.fail();
+  } catch (error) {
+    return ctx.fail(error, '讀取成績統計');
   }
   if (!ctx.isCurrent()) return;
   if (!data.classes.length) return shell('<div class="card center muted">目前沒有啟用中的班級。</div>');

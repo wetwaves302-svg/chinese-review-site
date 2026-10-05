@@ -80,7 +80,7 @@ async function home(ctx) {
       .order('grade').order('name'),
   ]);
   if (!ctx.isCurrent()) return;
-  if (courses.error || classes.error) return ctx.fail();
+  if (courses.error || classes.error) return ctx.fail(courses.error || classes.error, courses.error ? '讀取課程清單' : '讀取班級名冊');
 
   const blocks = GRADES.map((label, i) => {
     const rows = courses.data.filter((c) => c.grade === i + 1).map((c) => `
@@ -217,8 +217,8 @@ async function newCourse(ctx, gradeParam) {
   let semesters;
   try {
     semesters = await loadSemesters();
-  } catch {
-    return ctx.fail();
+  } catch (error) {
+    return ctx.fail(error, '讀取學期');
   }
   if (!ctx.isCurrent()) return;
 
@@ -256,8 +256,8 @@ async function editCourse(ctx, courseId) {
     if (courseResult.error) throw courseResult.error;
     course = courseResult.data;
     semesters = semesterList;
-  } catch {
-    if (ctx.isCurrent()) ctx.fail();
+  } catch (error) {
+    if (ctx.isCurrent()) ctx.fail(error, '讀取課程');
     return;
   }
   if (!ctx.isCurrent()) return;
@@ -311,7 +311,7 @@ async function itemEditor(ctx, section, type, courseId) {
       .eq('course_id', courseId)
       .order('position').order('title');
     if (!ctx.isCurrent()) return;
-    if (error) return ctx.fail();
+    if (error) return ctx.fail(error, `讀取${type.noun}`);
     items = data;
     render(message);
   }
