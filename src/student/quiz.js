@@ -1,5 +1,6 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc } from '../lib/ui.js';
+import { LETTERS, optionOrder, shownLetter, remapLetters } from './shuffle.js';
 
 export const PAPERS = {
   basic: { name: '基礎卷', tag: '必寫', tagClass: 'must' },
@@ -8,7 +9,6 @@ export const PAPERS = {
   past: { name: '歷屆試題', tag: '練習加分', tagClass: 'past' },
 };
 
-const LETTERS = ['A', 'B', 'C', 'D'];
 
 const START_ERRORS = {
   locked: '完成基礎卷後才能寫這一卷。',
@@ -176,31 +176,32 @@ function passageCard(group) {
     </details>`;
 }
 
-function resultBlock(courseId, q) {
+function resultBlock(courseId, q, order) {
   const r = q.result;
-  const explains = r.explains.map((text, i) => `
-    <p class="${LETTERS[i] === r.key ? 'is-key' : ''}"><b>(${LETTERS[i]})</b>${esc(text)}</p>`).join('');
+  const explains = order.map((letter, i) => `
+    <p class="${letter === r.key ? 'is-key' : ''}"><b>(${LETTERS[i]})</b>${esc(remapLetters(order, r.explains[LETTERS.indexOf(letter)]))}</p>`).join('');
   const review = !r.correct && (r.review_video || r.review_material) ? `
     <div class="remedy">
       ${r.review_video ? `<a href="#/course/${esc(r.review_video.course_id)}/video/${esc(r.review_video.id)}">回看影片「${esc(r.review_video.title)}」${r.review_video.timestamp ? `<small>從 ${Math.floor(r.review_video.timestamp / 60)}:${String(r.review_video.timestamp % 60).padStart(2, '0')} 開始</small>` : ''}</a>` : ''}
       ${r.review_material ? `<a href="#/course/${esc(r.review_material.course_id)}/material/${esc(r.review_material.id)}">回看上課筆記「${esc(r.review_material.title)}」${r.review_material.page ? `<small>請翻到第 ${r.review_material.page} 頁</small>` : ''}</a>` : ''}
     </div>` : '';
   return `
-    <div class="verdict ${r.correct ? 'right' : 'wrong'}">${r.correct ? '✓ 答對' : '✕ 這題要再留意'}<span>正確答案 (${r.key})</span></div>
+    <div class="verdict ${r.correct ? 'right' : 'wrong'}">${r.correct ? '✓ 答對' : '✕ 這題要再留意'}<span>正確答案 (${shownLetter(order, r.key)})</span></div>
     <div class="card explain">${explains}
-      ${r.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(r.teacher_note)}</div>` : ''}
+      ${r.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(remapLetters(order, r.teacher_note))}</div>` : ''}
     </div>
     ${review}`;
 }
 
-function questionBody(courseId, q, hint = '選好答案就會立刻看到解析，選了就不能更改。') {
+// order：畫面各位置要放的原代號（見 shuffle.js）；按鈕送出的仍是原代號
+function questionBody(courseId, q, order, hint = '選好答案就會立刻看到解析，選了就不能更改。') {
   const answered = Boolean(q.result);
-  const options = LETTERS.map((letter, i) => {
+  const options = order.map((letter, i) => {
     const classes = ['opt'];
     if (answered && letter === q.result.key) classes.push('right');
     if (answered && letter === q.result.answer && !q.result.correct) classes.push('wrong');
     if (answered && letter === q.result.answer) classes.push('chosen');
-    const label = q.image ? `(${letter})` : `<span class="k">(${letter})</span><span>${esc(q.options[i])}</span>`;
+    const label = q.image ? `(${LETTERS[i]})` : `<span class="k">(${LETTERS[i]})</span><span>${esc(q.options[LETTERS.indexOf(letter)])}</span>`;
     return `<button type="button" class="${classes.join(' ')}" data-answer="${letter}" ${answered ? 'disabled' : ''}>${label}</button>`;
   }).join('');
   return `
@@ -208,7 +209,7 @@ function questionBody(courseId, q, hint = '選好答案就會立刻看到解析�
       ? `<img class="q-image" src="${q.image}" alt="${esc(q.stem)}">`
       : `<p class="q-stem">${esc(q.stem)}</p>`}
     <div class="options${q.image ? ' letters' : ''}">${options}</div>
-    ${answered ? resultBlock(courseId, q) : `<p class="hint center">${hint}</p>`}`;
+    ${answered ? resultBlock(courseId, q, order) : `<p class="hint center">${hint}</p>`}`;
 }
 
 export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
@@ -248,7 +249,7 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
       ${group ? passageCard(group) : ''}
       <div class="card question">
         <div class="q-meta">第 ${index + 1} 題${pastLabel(q)}${q.result ? favButton(q) : ''}</div>
-        <div data-question>${questionBody(courseId, q)}</div>
+        <div data-question>${questionBody(courseId, q, optionOrder(q, `${session.id}:${q.id}`))}</div>
       </div>
       <div class="q-foot">
         ${prev ? `<a class="btn ghost" href="${prev}">‹ 上一題</a>` : '<span></span>'}
@@ -428,12 +429,15 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
   if (!data.ok) return shell(ctx, { ...frame, body: '<div class="card center"><p>找不到這一題。</p></div>' });
 
   const q = { ...data.question, result: data.result };
+  let round = data.retry.count;  // 每按一次「再重做一次」就換一次選項位置
   render();
 
   function render() {
+    const order = optionOrder(q, `${q.id}:${mode}:${round}`);
+    const first = shownLetter(order, data.first.answer);
     const firstNote = mode === 'retry'
-      ? `第一次作答選 (${data.first.answer})，答錯了。${data.retry.count ? `已重做 ${data.retry.count} 次。` : ''}重做只影響目前掌握度，不改變分數。`
-      : `這題你當時選 (${data.first.answer})，${data.first.correct ? '答對了' : '答錯了'}。`;
+      ? `第一次作答選的是下面的 (${first})，答錯了。${data.retry.count ? `已重做 ${data.retry.count} 次。` : ''}重做只影響目前掌握度，不改變分數。`
+      : `這題你當時選的是下面的 (${first})，${data.first.correct ? '答對了' : '答錯了'}。`;
     shell(ctx, {
       ...frame,
       title: mode === 'retry' ? '錯題重做' : '收藏複習',
@@ -442,7 +446,7 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
         ${data.group ? passageCard(data.group) : ''}
         <div class="card question">
           <div class="q-meta">${esc(PAPERS[data.paper]?.name ?? '')}${pastLabel(q)}${favButton(q)}</div>
-          <div data-question>${questionBody(courseId, q, '選好答案就會看到解析，答錯可以再重做。')}</div>
+          <div data-question>${questionBody(courseId, q, order, '選好答案就會看到解析，答錯可以再重做。')}</div>
         </div>
         <div class="q-foot">
           <a class="btn ghost" href="#/course/${esc(courseId)}/${listKind}">‹ ${REVIEW_KINDS[listKind].title}</a>
@@ -455,6 +459,7 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
     }
     ctx.app.querySelector('[data-again]')?.addEventListener('click', () => {
       q.result = null;
+      round = data.retry.count;
       render();
     });
     bindFavorite(ctx, q);
