@@ -1,0 +1,242 @@
+<meta charset="utf-8">
+<title>沈葆楨與臺灣 影片闖關</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one column, video on top, question card slides over the video; paper neutrals with a seal-red accent. */
+:root{
+  --bg:#f6f3ec; --paper:#fffdf8; --fg:#23211c; --muted:#6b665a; --line:#dcd6c8;
+  --accent:#b8332a; --accent-fg:#ffffff; --ink:#1f3a5f; --ok:#2e7d4f; --ok-bg:#e6f3ea; --bad:#b8332a; --bad-bg:#fbe9e7;
+  --display:"Noto Serif TC","PingFang TC","Songti TC",serif; --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#181714; --paper:#23211d; --fg:#ebe6da; --muted:#a39c8c; --line:#3a362e;
+  --accent:#e0574c; --accent-fg:#1a1410; --ink:#8fb3e0; --ok:#7fcf9a; --ok-bg:#1e3326; --bad:#f08a80; --bad-bg:#3a1f1c; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#181714; --paper:#23211d; --fg:#ebe6da; --muted:#a39c8c; --line:#3a362e;
+  --accent:#e0574c; --accent-fg:#1a1410; --ink:#8fb3e0; --ok:#7fcf9a; --ok-bg:#1e3326; --bad:#f08a80; --bad-bg:#3a1f1c; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-size:1.5rem;margin:0;line-height:1.3;text-wrap:balance}
+.eyebrow{font-size:.78rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.clock{font-variant-numeric:tabular-nums;font-size:.9rem;color:var(--muted);display:flex;gap:10px;align-items:center}
+.clock b{color:var(--fg);font-weight:500}
+.clock .over{color:var(--bad);font-weight:700}
+.stage{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;max-width:100%}
+video{width:100%;height:100%;display:block;background:#000}
+.overlay{position:absolute;inset:0;background:rgba(20,18,14,.86);color:#f4efe4;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.overlay[hidden]{display:none!important}
+.card{background:var(--paper);color:var(--fg);border-radius:10px;padding:18px 20px;max-width:560px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.card .tag{font-size:.78rem;color:var(--accent);letter-spacing:.1em;font-weight:700}
+.card h2{font-family:var(--display);font-size:1.15rem;margin:4px 0 12px;line-height:1.45;text-wrap:balance}
+.opts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.opt{border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;background:transparent;color:inherit;font:inherit;text-align:left;width:100%;line-height:1.5}
+.opt:hover{border-color:var(--ink)}
+.opt:focus-visible,.btn:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.opt .k{font-weight:700;color:var(--ink);flex:none;width:1.4em}
+.opt.sel{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.opt.right{background:var(--ok-bg);border-color:var(--ok)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.fb{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:.95rem;line-height:1.55}
+.fb.ok{background:var(--ok-bg);color:var(--ok)}
+.fb.bad{background:var(--bad-bg);color:var(--bad)}
+.fb.note{background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+.fb[hidden]{display:none!important}
+.row{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:14px;flex-wrap:wrap}
+.btn{border:0;border-radius:8px;padding:9px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+textarea,input[type=text]{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+textarea{min-height:84px;resize:vertical}
+/* controls */
+.ctl{display:flex;align-items:center;gap:12px}
+.play{width:42px;height:42px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:1.1rem;cursor:pointer;flex:none;display:grid;place-items:center}
+.bar{position:relative;flex:1;height:10px;border-radius:5px;background:var(--line);cursor:pointer;min-width:0}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:5px;width:0}
+.bar .mk{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--paper);transform:translate(-50%,-50%);transition:background .2s}
+.bar .mk.done{background:var(--ok)}
+.time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem;flex:none}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+/* chapters */
+.chap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.chap li{border-left:3px solid var(--line);padding:4px 10px;font-size:.88rem;line-height:1.45}
+.chap li.now{border-left-color:var(--accent)}
+.chap .t{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.8rem;display:block}
+/* summary */
+.sum{display:flex;flex-direction:column;gap:10px}
+.score{font-family:var(--display);font-size:2rem;line-height:1.1}
+.score small{font-family:var(--body);font-size:.95rem;color:var(--muted);font-weight:400;margin-left:6px}
+.sum ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px;font-size:.93rem}
+.sum .r{font-weight:700}
+.sum .r.ok{color:var(--ok)}.sum .r.bad{color:var(--bad)}
+/* teacher panel */
+details{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--paper)}
+summary{cursor:pointer;font-weight:700}
+details ol{padding-left:1.3em;font-size:.93rem}
+details li+li{margin-top:8px}
+details .ans{color:var(--ok);font-weight:700}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">〈臺煤減稅片〉課前影片</div>
+      <h1>沈葆楨與臺灣 影片闖關</h1>
+    </div>
+    <div class="clock" id="clock" aria-live="polite">已用時間 <b id="elapsed">0:00</b> <span>／ 目標 6:00</span></div>
+  </header>
+
+  <div class="stage">
+    <video id="v" playsinline preload="auto" poster="">
+      <source src="clip.mp4" type="video/mp4">
+    </video>
+
+    <!-- start screen -->
+    <div class="overlay" id="startOv">
+      <div class="card">
+        <div class="tag">自學說明</div>
+        <h2>影片約 3 分鐘，中途會自動暫停 4 次，各出一題選擇題。</h2>
+        <p style="margin:0 0 10px;color:var(--muted);font-size:.93rem">答完才能繼續播放；無法快轉跳過題目，但可以往回重看。請在 6 分鐘內完成。</p>
+        <label for="name" style="font-size:.9rem;font-weight:500">姓名／座號（選填）</label>
+        <input type="text" id="name" placeholder="例：15 王小明" autocomplete="off">
+        <div class="row"><button class="btn" id="startBtn">開始觀看</button></div>
+      </div>
+    </div>
+
+    <!-- question screen -->
+    <div class="overlay" id="qOv" hidden>
+      <div class="card" id="qCard"></div>
+    </div>
+
+    <!-- summary screen -->
+    <div class="overlay" id="endOv" hidden>
+      <div class="card sum" id="endCard"></div>
+    </div>
+  </div>
+
+  <div class="ctl">
+    <button class="play" id="playBtn" aria-label="播放">▶</button>
+    <div class="bar" id="bar" role="slider" aria-label="進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div></div>
+    <div class="time"><span id="cur">0:00</span> / <span id="dur">3:02</span></div>
+  </div>
+  <p class="hint">紅點是出題位置，答完會變綠。</p>
+
+  <ol class="chap" id="chap">
+    <li data-t="0"><span class="t">0:00</span>列強覬覦與牡丹社事件</li>
+    <li data-t="43"><span class="t">0:43</span>海防砲臺、行政區與開山撫番</li>
+    <li data-t="100"><span class="t">1:40</span>廢渡臺禁令、人口大增</li>
+    <li data-t="124"><span class="t">2:04</span>清廷態度轉積極、中法戰爭</li>
+    <li data-t="152"><span class="t">2:32</span>臺灣建省與現代化</li>
+  </ol>
+
+  <details id="teacher">
+    <summary>教師參考：題目與答案</summary>
+    <ol id="teacherList"></ol>
+  </details>
+</div>
+
+<script>
+(function(){
+  const Q = [
+    { at: 43.0, type:"mc",
+      q:"1874 年日本出兵攻打臺灣（牡丹社事件），用的藉口是什麼？",
+      opts:["琉球船民漂流到臺灣遇害","清朝拒絕與日本通商","法國軍艦進攻基隆","臺灣煤礦出口課稅過重"],
+      ans:0, why:"1871 年琉球船民船難漂到恆春，遭原住民殺害；琉球當時不是日本領土，日本仍以此為藉口，1874 年出兵。清廷因此派沈葆楨統籌臺灣事務。" },
+    { at: 99.8, type:"mc",
+      q:"影片提到的「開山撫番」，沈葆楨實際做了什麼？",
+      opts:["廢除劃界封山，修築北、中、南三條通往東部的道路","在安平興建億載金城","把臺灣分成兩府八縣四廳","禁止內地人民渡海來臺"],
+      ans:0, why:"開山撫番是廢除劃界封山政策，開闢北、中、南三條東西向道路（含八通關古道），這些路線成為日後重要道路的基礎。億載金城屬海防、兩府八縣四廳屬行政區調整，是另外兩項政策。" },
+    { at: 123.8, type:"mc",
+      q:"沈葆楨廢除「渡臺禁令」之後，對臺灣最直接的影響是什麼？",
+      opts:["人口大量增加，福建的人力、物力、技術不斷流入","臺灣改隸福建省管轄","原住民被遷往東部","臺灣開始對外國開放通商口岸"],
+      ans:0, why:"禁令廢除後鼓勵人民來臺開墾，臺灣人口大量增加，福建沿海的人力、物力與生產技術源源流向臺灣。" },
+    { at: 166.6, type:"mc",
+      q:"1884 年中法戰爭之後，清廷對臺灣做了什麼決定？",
+      opts:["1885 年將臺灣從福建分出單獨建省，劉銘傳任首任巡撫","把臺灣割讓給法國","撤回沈葆楨，恢復封山政策","將臺灣交由日本代管"],
+      ans:0, why:"中法戰爭讓清廷更體認臺灣的軍事地位，1885 年臺灣建省，劉銘傳為首任巡撫，延續沈葆楨的政策並推動建設。" }
+  ];
+  const v = document.getElementById("v"), startOv=document.getElementById("startOv"), qOv=document.getElementById("qOv"), qCard=document.getElementById("qCard"),
+        endOv=document.getElementById("endOv"), endCard=document.getElementById("endCard"), playBtn=document.getElementById("playBtn"),
+        bar=document.getElementById("bar"), fill=document.getElementById("fill"), cur=document.getElementById("cur"), durEl=document.getElementById("dur"),
+        elapsedEl=document.getElementById("elapsed"), clock=document.getElementById("clock"), chap=document.getElementById("chap");
+  const answers = Q.map(()=>null);
+  let maxAllowed = Q[0].at, started=false, startAt=0, timer=null, finalElapsed=0, current=-1;
+  const fmt = s => { s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+
+  // markers
+  Q.filter(q=>q.at>=0).forEach((q,i)=>{ const m=document.createElement("div"); m.className="mk"; m.id="mk"+i; bar.appendChild(m); });
+  function placeMarkers(){ const d=v.duration||182.5; Q.forEach((q,i)=>{ if(q.at<0) return; const m=document.getElementById("mk"+i); m.style.left=(q.at/d*100)+"%"; }); durEl.textContent=fmt(v.duration||182.5); }
+  v.addEventListener("loadedmetadata", placeMarkers); placeMarkers();
+
+  // teacher list
+  const tl=document.getElementById("teacherList");
+  Q.forEach((q,i)=>{ const li=document.createElement("li"); let h=`<div>${q.at>=0?"["+fmt(q.at)+"] ":"[結尾] "}${q.q}</div>`;
+    if(q.type==="mc"){ h+="<div>選項（學生端隨機排列）："+q.opts.join("／")+`</div><div class="ans">答案：${q.opts[q.ans]}</div><div style="color:var(--muted)">${q.why}</div>`; }
+    else h+=`<div style="color:var(--muted)">${q.model}</div>`; li.innerHTML=h; tl.appendChild(li); });
+
+  // clock
+  function tick(){ const e=(Date.now()-startAt)/1000; elapsedEl.textContent=fmt(e); clock.classList.toggle("over", e>360); if(e>360) elapsedEl.classList.add("over"); }
+  document.getElementById("startBtn").addEventListener("click", ()=>{ started=true; startAt=Date.now(); timer=setInterval(tick,500); startOv.hidden=true; v.play().catch(()=>{}); });
+
+  playBtn.addEventListener("click", ()=>{ if(!started) return; if(v.paused) v.play(); else v.pause(); });
+  v.addEventListener("play", ()=>{ playBtn.textContent="❚❚"; playBtn.setAttribute("aria-label","暫停"); });
+  v.addEventListener("pause", ()=>{ playBtn.textContent="▶"; playBtn.setAttribute("aria-label","播放"); });
+
+  bar.addEventListener("click", e=>{ if(!started||!qOv.hidden) return; const r=bar.getBoundingClientRect(); const t=(e.clientX-r.left)/r.width*(v.duration||182.5);
+    v.currentTime=Math.min(t, maxAllowed-0.3 > 0 ? maxAllowed-0.3 : 0); });
+  v.addEventListener("seeking", ()=>{ if(v.currentTime>maxAllowed) v.currentTime=Math.max(0,maxAllowed-0.3); });
+
+  v.addEventListener("timeupdate", ()=>{
+    const d=v.duration||182.5, t=v.currentTime; fill.style.width=(t/d*100)+"%"; cur.textContent=fmt(t); bar.setAttribute("aria-valuenow",Math.round(t/d*100));
+    let idx=0; chap.querySelectorAll("li").forEach((li,i)=>{ if(t>=+li.dataset.t) idx=i; }); chap.querySelectorAll("li").forEach((li,i)=>li.classList.toggle("now",i===idx));
+    const n = Q.findIndex((q,i)=>q.at>=0 && answers[i]===null && t>=q.at);
+    if(n>=0 && qOv.hidden){ v.pause(); v.currentTime=Q[n].at; ask(n); }
+  });
+  v.addEventListener("ended", ()=>{ if(endOv.hidden) finish(); });
+
+  function ask(i){
+    current=i; const q=Q[i]; qOv.hidden=false;
+    if(q.type==="mc"){
+      // shuffle option order per attempt so the correct letter varies
+      const order=q.opts.map((_,j)=>j); for(let k=order.length-1;k>0;k--){ const r=Math.floor(Math.random()*(k+1)); [order[k],order[r]]=[order[r],order[k]]; }
+      q.letter = L => "ABCD"[order.indexOf(L)];
+      qCard.innerHTML=`<div class="tag">第 ${i+1} 題 ／ 共 ${Q.length} 題</div><h2>${q.q}</h2><ul class="opts" id="opts">${order.map((j,p)=>`<li><button class="opt" data-j="${j}"><span class="k">${"ABCD"[p]}</span><span>${q.opts[j]}</span></button></li>`).join("")}</ul><div class="fb" id="fb" hidden></div><div class="row"><button class="btn" id="submit" disabled>送出</button><button class="btn" id="go" hidden>繼續播放</button></div>`;
+      let sel=-1; const btns=[...qCard.querySelectorAll(".opt")], submit=qCard.querySelector("#submit"), go=qCard.querySelector("#go"), fb=qCard.querySelector("#fb");
+      btns.forEach(b=>b.addEventListener("click",()=>{ if(submit.hidden) return; sel=+b.dataset.j; btns.forEach(x=>x.classList.toggle("sel",x===b)); submit.disabled=false; }));
+      submit.addEventListener("click",()=>{ const ok=sel===q.ans; answers[i]={ok,sel}; btns.forEach(x=>{ x.disabled=true; const j=+x.dataset.j; if(j===q.ans) x.classList.add("right"); else if(j===sel) x.classList.add("wrong"); });
+        fb.hidden=false; fb.className="fb "+(ok?"ok":"bad"); fb.innerHTML=(ok?"答對了。":"答錯了，正確答案是 "+q.letter(q.ans)+"。")+" "+q.why; submit.hidden=true; go.hidden=false; document.getElementById("mk"+i).classList.add("done"); go.focus(); });
+      go.addEventListener("click",()=>{ qOv.hidden=true; const nxt=Q.find((x,k)=>x.at>=0 && k>i); maxAllowed = nxt? nxt.at : (v.duration||182.5)+1; v.play(); });
+      btns[0].focus();
+    } else {
+      qCard.innerHTML=`<div class="tag">第 ${i+1} 題 ／ 共 ${Q.length} 題 ・ 簡答</div><h2>${q.q}</h2><textarea id="ta" placeholder="請寫下你的想法"></textarea><div class="fb note" id="fb" hidden></div><div class="row"><button class="btn ghost" id="skip">略過</button><button class="btn" id="submit">送出</button><button class="btn" id="go" hidden>看結果</button></div>`;
+      const ta=qCard.querySelector("#ta"), submit=qCard.querySelector("#submit"), go=qCard.querySelector("#go"), fb=qCard.querySelector("#fb"), skip=qCard.querySelector("#skip");
+      const done=(txt)=>{ answers[i]={text:txt}; ta.disabled=true; fb.hidden=false; fb.textContent=q.model; submit.hidden=true; skip.hidden=true; go.hidden=false; go.focus(); };
+      submit.addEventListener("click",()=>done(ta.value.trim()));
+      skip.addEventListener("click",()=>done(""));
+      go.addEventListener("click",()=>{ qOv.hidden=true; finish(); });
+      ta.focus();
+    }
+  }
+
+  function finish(){
+    clearInterval(timer); finalElapsed=(Date.now()-startAt)/1000; tick();
+    const mc=Q.map((q,i)=>({q,a:answers[i],i})).filter(x=>x.q.type==="mc"); const right=mc.filter(x=>x.a&&x.a.ok).length;
+    const name=document.getElementById("name").value.trim();
+    endCard.innerHTML=`<div class="tag">完成</div><div class="score">${right} / ${mc.length}<small>選擇題答對${name?"・"+name:""}・用時 ${fmt(finalElapsed)}</small></div>
+      <ol>${mc.map(x=>`<li><span class="r ${x.a&&x.a.ok?"ok":"bad"}">${x.a&&x.a.ok?"✓":"✗"}</span> ${x.q.q}<br><span style="color:var(--muted)">你的答案：${x.a?x.q.opts[x.a.sel]:"—"}${x.a&&x.a.ok?"":"；正確："+x.q.opts[x.q.ans]}</span></li>`).join("")}</ol>
+      <div class="row"><button class="btn ghost" id="copy">複製結果</button><button class="btn ghost" id="review">回看影片</button><button class="btn" id="again">重新作答</button></div>`;
+    endOv.hidden=false;
+    endCard.querySelector("#copy").addEventListener("click",ev=>{ const txt=`${name||"（未填姓名）"} 沈葆楨與臺灣 影片闖關：選擇題 ${right}/${mc.length}，用時 ${fmt(finalElapsed)}。`+mc.map(x=>`Q${x.i+1}${x.a&&x.a.ok?"✓":"✗"}`).join(" ");
+      const b=ev.currentTarget; const ok=()=>{ b.textContent="已複製"; setTimeout(()=>b.textContent="複製結果",1500); };
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok).catch(()=>{ fallback(txt); ok(); }); } else { fallback(txt); ok(); } });
+    function fallback(txt){ const ta=document.createElement("textarea"); ta.value=txt; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");}catch(e){} ta.remove(); }
+    endCard.querySelector("#review").addEventListener("click",()=>{ endOv.hidden=true; maxAllowed=(v.duration||182.5)+1; v.currentTime=0; v.play(); });
+    endCard.querySelector("#again").addEventListener("click",()=>{ location.reload(); });
+  }
+})();
+</script>
