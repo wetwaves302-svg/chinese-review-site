@@ -1,6 +1,6 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc } from '../lib/ui.js';
-import { LETTERS, optionOrder, shownLetter, remapLetters } from './shuffle.js';
+import { LETTERS, optionOrder, shownLetter, remapLetters, optionsInImage } from './shuffle.js';
 
 export const PAPERS = {
   basic: { name: '基礎卷', tag: '必寫', tagClass: 'must' },
@@ -185,7 +185,17 @@ function resultBlock(courseId, q, order) {
       ${r.review_video ? `<a href="#/course/${esc(r.review_video.course_id)}/video/${esc(r.review_video.id)}">回看影片「${esc(r.review_video.title)}」${r.review_video.timestamp ? `<small>從 ${Math.floor(r.review_video.timestamp / 60)}:${String(r.review_video.timestamp % 60).padStart(2, '0')} 開始</small>` : ''}</a>` : ''}
       ${r.review_material ? `<a href="#/course/${esc(r.review_material.course_id)}/material/${esc(r.review_material.id)}">回看上課筆記「${esc(r.review_material.title)}」${r.review_material.page ? `<small>請翻到第 ${r.review_material.page} 頁</small>` : ''}</a>` : ''}
     </div>` : '';
+  // 同一題同一個錯誤選項選到門檻次數：醒目提醒，並列入本單元的「觀念提醒」
+  const repeat = !r.correct && r.repeat >= 2 ? `
+    <div class="concept-warn${r.repeat >= r.threshold ? ' strong' : ''}">
+      <strong>${r.repeat >= r.threshold ? '⚠ 觀念提醒' : '注意'}</strong>
+      這一題你已經第 ${r.repeat} 次選「${esc(q.options[LETTERS.indexOf(r.answer)])}」了。
+      ${r.repeat >= r.threshold
+        ? '這代表這個觀念可能一直沒弄清楚，請仔細讀下面這個選項的解析；這題已列入本單元的「觀念提醒」，之後再答對才會解除。'
+        : `同一個選項再選錯 ${r.threshold - r.repeat} 次就會列入本單元的「觀念提醒」，請先把下面的解析讀懂。`}
+    </div>` : '';
   return `
+    ${repeat}
     <div class="verdict ${r.correct ? 'right' : 'wrong'}">${r.correct ? '✓ 答對' : '✕ 這題要再留意'}<span>正確答案 (${shownLetter(order, r.key)})</span></div>
     <div class="card explain">${explains}
       ${r.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(remapLetters(order, r.teacher_note))}</div>` : ''}
@@ -201,14 +211,14 @@ function questionBody(courseId, q, order, hint = '選好答案就會立刻看到
     if (answered && letter === q.result.key) classes.push('right');
     if (answered && letter === q.result.answer && !q.result.correct) classes.push('wrong');
     if (answered && letter === q.result.answer) classes.push('chosen');
-    const label = q.image ? `(${LETTERS[i]})` : `<span class="k">(${LETTERS[i]})</span><span>${esc(q.options[LETTERS.indexOf(letter)])}</span>`;
+    const label = optionsInImage(q) ? `(${LETTERS[i]})` : `<span class="k">(${LETTERS[i]})</span><span>${esc(q.options[LETTERS.indexOf(letter)])}</span>`;
     return `<button type="button" class="${classes.join(' ')}" data-answer="${letter}" ${answered ? 'disabled' : ''}>${label}</button>`;
   }).join('');
   return `
-    ${q.image
+    ${optionsInImage(q)
       ? `<img class="q-image" src="${q.image}" alt="${esc(q.stem)}">`
-      : `<p class="q-stem">${esc(q.stem)}</p>`}
-    <div class="options${q.image ? ' letters' : ''}">${options}</div>
+      : `<p class="q-stem">${esc(q.stem)}</p>${q.image ? `<img class="q-image" src="${q.image}" alt="題目附圖">` : ''}`}
+    <div class="options${optionsInImage(q) ? ' letters' : ''}">${options}</div>
     ${answered ? resultBlock(courseId, q, order) : `<p class="hint center">${hint}</p>`}`;
 }
 
@@ -435,7 +445,9 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
   function render() {
     const order = optionOrder(q, `${q.id}:${mode}:${round}`);
     const first = shownLetter(order, data.first.answer);
-    const firstNote = mode === 'retry'
+    const firstNote = mode === 'retry' && data.first.correct
+      ? `這題列在「觀念提醒」：你曾一再選同一個錯誤選項。重做答對就會解除提醒。重做只影響目前掌握度，不改變分數。`
+      : mode === 'retry'
       ? `第一次作答選的是下面的 (${first})，答錯了。${data.retry.count ? `已重做 ${data.retry.count} 次。` : ''}重做只影響目前掌握度，不改變分數。`
       : `這題你當時選的是下面的 (${first})，${data.first.correct ? '答對了' : '答錯了'}。`;
     shell(ctx, {

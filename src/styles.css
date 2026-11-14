@@ -295,7 +295,7 @@ select.input { appearance: auto; }
 .q-meta { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .past-tag { font-size: 13px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
 .q-stem { font-size: 17px; line-height: 1.8; margin: 0 0 14px; white-space: pre-line; }
-.q-image { width: 100%; height: auto; display: block; margin-bottom: 14px; }
+.q-image { width: auto; max-width: 100%; max-height: 70vh; height: auto; display: block; margin: 0 auto 14px; }
 .options { display: grid; gap: 8px; }
 .options.letters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .opt {
@@ -412,3 +412,25 @@ select.input { appearance: auto; }
 .stat-line { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; margin: 4px 0 10px; }
 .stat-line b { color: var(--primary); }
 .card h2 .tag { font-weight: 400; }
+
+/* 觀念提醒：同一題一再選同一個錯誤選項 */
+.concept-alerts { border: 2px solid var(--warn); background: var(--warn-soft); }
+.concept-alerts h2 { color: var(--warn); margin: 0 0 6px; font-size: 18px; }
+.concept-alerts > p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; }
+.concept-alerts .list { background: var(--surface); border-radius: 10px; }
+.concept-alerts .ic.warn { background: var(--warn); color: #fff; font-weight: 700; display: grid; place-items: center; }
+.alert-item { background: var(--surface); border-radius: 10px; padding: 12px; margin-top: 10px; font-size: 14px; line-height: 1.6; }
+.alert-q { color: var(--muted); }
+.alert-pick { margin-top: 4px; font-size: 15px; }
+.alert-pick b { color: var(--warn); font-size: 17px; }
+.alert-why { margin-top: 6px; border-left: 3px solid var(--warn); padding-left: 8px; }
+.alert-why strong { display: block; color: var(--warn); font-size: 13px; }
+.alert-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.alert-foot small { color: var(--muted); }
+.alert-foot .btn { width: auto; padding: 6px 14px; white-space: nowrap; }
+.concept-warn { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; line-height: 1.6; }
+.concept-warn strong { display: block; }
+.concept-warn.strong { border: 2px solid var(--warn); background: var(--warn-soft); color: var(--text); }
+.concept-warn.strong strong { color: var(--warn); font-size: 16px; }
+.alert-more { margin-top: 10px; }
+.alert-more summary { cursor: pointer; color: var(--warn); font-weight: 600; font-size: 14px; }

@@ -127,10 +127,66 @@ const CLOCK_SVG = `
     <circle cx="50" cy="50" r="3" class="pin" />
   </svg>`;
 
+// 觀念提醒：同一題一再選同一個錯誤選項（後端門檻，目前 3 次），答對後才解除
+// 資料庫尚未更新時（函式不存在）不顯示，不影響其他功能
+const loadAlerts = (ctx, courseId = null) =>
+  ctx.call('student_concept_alerts', { p_course_id: courseId }).then((r) => (r?.ok ? r.alerts : []), () => []);
+
+function homeAlerts(alerts) {
+  if (!alerts.length) return '';
+  const byCourse = new Map();
+  for (const a of alerts) {
+    if (!byCourse.has(a.course_id)) byCourse.set(a.course_id, { title: a.course_title, grade: a.grade, n: 0 });
+    byCourse.get(a.course_id).n += 1;
+  }
+  const rows = [...byCourse].map(([id, c]) => `
+    <a class="item" href="#/course/${esc(id)}">
+      <div class="ic warn" aria-hidden="true">!</div>
+      <div class="txt">${esc(c.title)}<small>${GRADES[c.grade - 1]}・${c.n} 題需要釐清觀念</small></div>
+      <span class="chev" aria-hidden="true">›</span>
+    </a>`).join('');
+  return `
+    <section class="card concept-alerts">
+      <h2>⚠ 觀念提醒</h2>
+      <p>你有 <b>${alerts.length}</b> 題一再選了同一個錯誤選項，表示這些觀念可能還沒弄清楚。進入單元看提醒，重做答對就會解除。</p>
+      <div class="list">${rows}</div>
+    </section>`;
+}
+
+// 提醒卡片不顯示選項代號：「說明見(B)」之類會指向畫面上沒有的代號，也可能透露答案
+const alertExplain = (text) => text
+  .replace(/[，,；;]?\s*(說明|詳見|理由|解析)?見[(（][A-D][)）][。.]?/g, '。')
+  .replace(/[(（][A-D][)）]/g, '另一選項')
+  .replace(/。{2,}/g, '。');
+
+function courseAlerts(courseId, alerts) {
+  if (!alerts.length) return '';
+  const item = (a) => `
+    <div class="alert-item">
+      <div class="alert-q">${a.has_image ? '（圖片題）' : ''}${esc(a.stem.length > 70 ? `${a.stem.slice(0, 70)}…` : a.stem)}</div>
+      <div class="alert-pick">你已經 <b>${a.times}</b> 次選了「${esc(a.option)}」</div>
+      <div class="alert-why"><strong>為什麼不對</strong>${esc(alertExplain(a.explain))}</div>
+      <div class="alert-foot">
+        <small>${esc([a.category, ...(a.tags ?? [])].filter(Boolean).join('・'))}</small>
+        <a class="btn" href="#/course/${esc(courseId)}/q/${esc(a.question_id)}/retry">重做這題</a>
+      </div>
+    </div>`;
+  // 先列最常選錯的 3 題，其餘收合，避免把卷別按鈕推得太遠
+  const items = alerts.slice(0, 3).map(item).join('') + (alerts.length > 3 ? `
+    <details class="alert-more"><summary>另外還有 ${alerts.length - 3} 題</summary>${alerts.slice(3).map(item).join('')}</details>` : '');
+  return `
+    <section class="card concept-alerts" id="concepts">
+      <h2>⚠ 觀念提醒（${alerts.length} 題）</h2>
+      <p>下面這些題目，你一再選了同一個錯誤選項。請先讀懂「為什麼不對」，再重做一次；答對後提醒就會解除。</p>
+      ${items}
+    </section>`;
+}
+
 async function home(ctx) {
   const frame = {};
-  const data = await load(ctx, frame, () => ctx.call('student_courses'));
-  if (!data) return;
+  const loaded = await load(ctx, frame, () => Promise.all([ctx.call('student_courses'), loadAlerts(ctx)]));
+  if (!loaded) return;
+  const [data, alerts] = loaded;
 
   const name = ctx.student.display_name || `${ctx.student.seat} 號同學`;
   const grades = GRADES.map((label, i) => {
@@ -157,6 +213,7 @@ async function home(ctx) {
         </div>
         ${CLOCK_SVG}
       </div>
+      ${homeAlerts(alerts)}
       <div class="section">
         <h3>選擇年級</h3>
         <div class="list grades">${grades}</div>
@@ -227,9 +284,10 @@ async function course(ctx, courseId) {
     ctx.call('student_course', { p_course_id: courseId }),
     ctx.call('student_papers', { p_course_id: courseId }),
     ctx.call('student_review_summary', { p_course_id: courseId }),
+    loadAlerts(ctx, courseId),
   ]));
   if (!data) return;
-  const [courseData, papers, summary] = data;
+  const [courseData, papers, summary, alerts] = data;
   if (!courseData.ok) return notFound(ctx, '找不到這一課，可能已經下架。');
 
   const c = courseData.course;
@@ -258,6 +316,7 @@ async function course(ctx, courseId) {
         <h2>${esc(c.title)}</h2>
         ${c.author || c.genre ? `<div class="muted">${[c.author, c.genre].filter(Boolean).map(esc).join('・')}</div>` : ''}
       </div>
+      ${courseAlerts(c.id, alerts)}
       ${c.is_core14 ? `<div class="core14-banner"><strong>${CORE14_LABEL}</strong>本課是教育部技術高中部定 14 篇古文之一，請務必重點學習！</div>` : ''}
       ${c.intro ? `<div class="card intro">${esc(c.intro)}</div>` : ''}
       ${c.teacher_note ? `<div class="note"><strong>貞伊老師提醒</strong>${esc(c.teacher_note)}</div>` : ''}
