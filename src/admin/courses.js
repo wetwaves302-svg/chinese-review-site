@@ -128,6 +128,8 @@ async function home(ctx) {
             <thead><tr><th>學年</th><th>班級</th><th>年級</th><th class="num">學生人數</th></tr></thead>
             <tbody>${roster}</tbody>
           </table>` : '<p class="muted">目前沒有啟用中的班級。</p>'}
+        <p class="hint">學生忘記 PIN 或被鎖住時，可以在這裡幫他重設，不必再執行 SQL。</p>
+        <a class="btn ghost" href="#/students">重設學生登入</a>
       </div>
       <div class="card">
         <a class="btn ghost" href="./" target="_blank" rel="noopener">開啟學生端</a>

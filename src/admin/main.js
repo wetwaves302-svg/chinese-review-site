@@ -2,6 +2,7 @@ import '../styles.css';
 import { supabase } from '../lib/supabase.js';
 import { pages } from './courses.js';
 import { statsPage } from './stats.js';
+import { studentsPage } from './students.js';
 import { SIGNATURE, NETWORK_ERROR, brand, errorBox, showError, withBusy, setRoute } from '../lib/ui.js';
 
 const app = document.getElementById('app');
@@ -97,6 +98,7 @@ const ROUTES = [
   [/^#\/course\/new\/([123])$/, pages.newCourse],
   [/^#\/course\/([\w-]+)$/, pages.editCourse],
   [/^#\/stats$/, statsPage],
+  [/^#\/students$/, studentsPage],
 ];
 
 function go(hash) {
