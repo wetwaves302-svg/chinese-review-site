@@ -2,6 +2,20 @@ import { rpc } from '../lib/supabase.js';
 import { esc, digits, SIGNATURE, NETWORK_ERROR, brand, errorBox, showError, withBusy, setRoute } from '../lib/ui.js';
 
 // 通行碼與初始碼只留在記憶體，不寫入 localStorage
+// 上次登入的班級與座號（非機密）會記在這台裝置，重新登入時自動帶出
+const WHO_KEY = 'review-site.who';
+const remembered = {
+  get() {
+    try {
+      const who = JSON.parse(localStorage.getItem(WHO_KEY)) ?? {};
+      return { classId: String(who.classId ?? ''), seat: /^[1-9][0-9]?$/.test(String(who.seat)) ? String(who.seat) : '' };
+    } catch { return { classId: '', seat: '' }; }
+  },
+  set(student) {
+    try { localStorage.setItem(WHO_KEY, JSON.stringify({ classId: student.class_id, seat: student.seat })); } catch { /* 無法儲存時略過 */ }
+  },
+};
+
 const login = { passcode: '', classes: [], classId: '', seat: '', initialCode: '' };
 let app;
 let onSignedIn;
@@ -120,6 +134,8 @@ function renderSignIn(message = '') {
     login.passcode = '';
     renderPasscode();
   });
+  // 班級座號已自動帶出時，直接從 PIN 開始輸入
+  if (form.querySelector('[name=classId]:checked') && login.seat) form.secret.focus();
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -207,6 +223,7 @@ function renderSetPin(message = '') {
 
 function signedIn(result) {
   Object.assign(login, { passcode: '', classes: [], initialCode: '' });
+  if (result.student) remembered.set(result.student);
   onSignedIn(result);
 }
 
@@ -214,6 +231,6 @@ function signedIn(result) {
 export function showLogin(root, handleSignedIn, message = '') {
   app = root;
   onSignedIn = handleSignedIn;
-  Object.assign(login, { passcode: '', classes: [], classId: '', seat: '', initialCode: '' });
+  Object.assign(login, { passcode: '', classes: [], initialCode: '', ...remembered.get() });
   renderPasscode(message);
 }

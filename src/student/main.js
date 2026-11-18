@@ -97,6 +97,10 @@ async function start() {
     const result = await rpc('student_session', { p_token: token });
     if (!result.ok) return expire();
     student = result.student;
+    if (result.token) { // 每次打開網站就換一張新憑證，效期重新起算
+      token = result.token;
+      tokenStore.set(token);
+    }
     route();
   } catch {
     renderOffline(app, start);
