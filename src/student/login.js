@@ -1,9 +1,15 @@
 import { rpc } from '../lib/supabase.js';
 import { esc, digits, SIGNATURE, NETWORK_ERROR, brand, errorBox, showError, withBusy, setRoute } from '../lib/ui.js';
 
-// 通行碼與初始碼只留在記憶體，不寫入 localStorage
-// 上次登入的班級與座號（非機密）會記在這台裝置，重新登入時自動帶出
+// 這台裝置會記住：上次登入的班級與座號、輸入正確過的班級通行碼（2026-11-20 貞伊老師決定，
+// 讓學生不必每次重打）。PIN 與初始碼不由本站儲存，只留在記憶體；PIN 交給瀏覽器的密碼管理員記。
 const WHO_KEY = 'review-site.who';
+const PASS_KEY = 'review-site.passcode';
+const savedPasscode = {
+  get() { try { return localStorage.getItem(PASS_KEY) ?? ''; } catch { return ''; } },
+  set(value) { try { localStorage.setItem(PASS_KEY, value); } catch { /* 無法儲存時略過 */ } },
+  clear() { try { localStorage.removeItem(PASS_KEY); } catch { /* 同上 */ } },
+};
 const remembered = {
   get() {
     try {
@@ -50,6 +56,7 @@ function needsNewPasscode(result) {
 
 function restartWithPasscode(result) {
   login.passcode = '';
+  savedPasscode.clear();
   renderPasscode(result.error === 'bad_passcode' ? '通行碼已經更換，請重新輸入。' : GATE_ERRORS[result.error]);
 }
 
@@ -95,6 +102,7 @@ function renderPasscode(message = '') {
         const result = await rpc('list_classes', { p_passcode: passcode });
         if (!result.ok) return showError(form, GATE_ERRORS[result.error] ?? '無法確認通行碼，請再試一次。');
         Object.assign(login, { passcode, classes: result.classes });
+        savedPasscode.set(passcode);
         renderSignIn();
       } catch {
         showError(form, NETWORK_ERROR);
@@ -118,12 +126,12 @@ function renderSignIn(message = '') {
       </fieldset>
       <div class="field">
         <label for="seat">座號</label>
-        <input id="seat" class="input" inputmode="numeric" autocomplete="off" maxlength="2" value="${esc(login.seat)}">
+        <input id="seat" name="username" class="input" inputmode="numeric" autocomplete="username" maxlength="2" value="${esc(login.seat)}">
       </div>
       <div data-error>${errorBox(message)}</div>
       <div class="field">
         <label for="secret">PIN 密碼</label>
-        <input id="secret" class="input code" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password">
+        <input id="secret" name="password" class="input code" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password">
         <div class="hint">第一次登入請輸入貞伊老師發的六位數初始碼，接著會請你設定自己的 PIN（4 至 6 位數字）。</div>
       </div>
       <button class="btn" type="submit">登入</button>
@@ -177,6 +185,7 @@ function renderSetPin(message = '') {
       <h2>設定自己的 PIN</h2>
       <p class="hint" style="margin-top:-6px">之後每次登入都用這組 PIN。請記好，忘記時請找貞伊老師重設。</p>
       <div data-error>${errorBox(message)}</div>
+      <input type="text" name="username" autocomplete="username" value="${esc(login.seat)}" readonly hidden>
       <div class="field">
         <label for="pin">新的 PIN（4 至 6 位數字）</label>
         <input id="pin" class="input code" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" autofocus>
@@ -232,5 +241,27 @@ export function showLogin(root, handleSignedIn, message = '') {
   app = root;
   onSignedIn = handleSignedIn;
   Object.assign(login, { passcode: '', classes: [], initialCode: '', ...remembered.get() });
-  renderPasscode(message);
+  resume(message);
+}
+
+// 這台裝置輸入過通行碼就直接進第二段；通行碼已更換或連不上時才回第一段
+async function resume(message) {
+  const passcode = savedPasscode.get();
+  if (!passcode) return renderPasscode(message);
+  const form = loginPage(false, '<form novalidate><p class="muted center">載入中…</p></form>');
+  try {
+    const result = await rpc('list_classes', { p_passcode: passcode });
+    if (!form.isConnected) return; // 等待期間畫面已換
+    if (result.ok) {
+      Object.assign(login, { passcode, classes: result.classes });
+      return renderSignIn(message);
+    }
+    if (result.error === 'bad_passcode') {
+      savedPasscode.clear();
+      return renderPasscode('通行碼已經更換，請重新輸入。');
+    }
+    renderPasscode(message || GATE_ERRORS[result.error] || '');
+  } catch {
+    if (form.isConnected) renderPasscode(message);
+  }
 }
