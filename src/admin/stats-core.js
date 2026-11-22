@@ -1,7 +1,7 @@
 // 教師統計的計算（不碰畫面與資料庫，規則與學生端 student_scores 相同）
 //   本課挑戰積分 ＝ 基礎卷最高分 ＋ 進階卷最高分 × 25% ＋ 挑戰卷最高分 × 10%
 //   歷屆練習加分：每課完成至少一次得 0.5 分，計入第一次完成時所在的學期
-//   學期全勤：自己年級、該學期上架的課程，三卷與歷屆都至少完成一次，加 3 分
+//   學期全勤：自己年級、該學期上架的課程，三卷與歷屆都至少完成一次，加 3 分（沒有歷屆題的課只看三卷）
 
 export const TEST_NAME = '測試帳號';
 export const PAPER_KEYS = ['basic', 'advanced', 'challenge'];
@@ -45,15 +45,17 @@ export function buildRecords({ sessions, semesters }) {
   return records;
 }
 
-export function courseComplete(record) {
+// 沒有歷屆題的課（course.hasPast === false）只看三卷
+export function courseComplete(record, course) {
   return Boolean(record)
-    && record.done.basic > 0 && record.done.advanced > 0 && record.done.challenge > 0 && record.done.past > 0;
+    && record.done.basic > 0 && record.done.advanced > 0 && record.done.challenge > 0
+    && (record.done.past > 0 || course?.hasPast === false);
 }
 
 // 一位學生在某學期的期末加分
 export function studentBonus(studentRecords, { grade, termId, courses }) {
   const required = courses.filter((c) => c.grade === grade && c.semester_id === termId);
-  const complete = required.filter((c) => courseComplete(studentRecords?.[c.id])).length;
+  const complete = required.filter((c) => courseComplete(studentRecords?.[c.id], c)).length;
   const pastCourses = Object.values(studentRecords ?? {}).filter((r) => r.pastTerm === termId).length;
   const past = pastCourses * 0.5;
   const attendance = required.length > 0 && complete === required.length ? 3 : 0;

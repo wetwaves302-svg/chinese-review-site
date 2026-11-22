@@ -28,7 +28,7 @@ async function loadData() {
     if (error) throw error;
     return data;
   };
-  const [semesters, classes, students, courses, sessions] = await Promise.all([
+  const [semesters, classes, students, courses, sessions, pastLinks] = await Promise.all([
     one(supabase.from('semesters').select('id, name, starts_on, ends_on').order('starts_on')),
     one(supabase.from('classes').select('id, school_year, name, grade').eq('active', true).order('grade').order('name')),
     fetchAll(() => supabase.from('students').select('id, class_id, seat, display_name').eq('active', true).order('seat').order('id')),
@@ -36,7 +36,11 @@ async function loadData() {
       .order('grade').order('position').order('title')),
     fetchAll(() => supabase.from('paper_sessions').select('id, student_id, course_id, paper, score, submitted_at')
       .not('submitted_at', 'is', null).order('id')),
+    fetchAll(() => supabase.from('course_questions').select('course_id').eq('paper', 'past').order('course_id').order('question_id')),
   ]);
+  // 題庫有歷屆題的課才要求完成歷屆（沒有歷屆題的課，全勤只看三卷）
+  const withPast = new Set(pastLinks.map((row) => row.course_id));
+  for (const course of courses) course.hasPast = withPast.has(course.id);
   const testers = students.filter((s) => s.display_name === TEST_NAME);
   return {
     semesters, classes, courses,
@@ -85,7 +89,7 @@ function courseCard(course, students, data, required) {
   const summary = [
     ...PAPER_KEYS.map((p) => stat(PAPER_NAMES[p], students.map((s) => rec(s)?.best[p]))),
     `<span>歷屆練習 <b>${students.filter((s) => rec(s)?.done.past > 0).length}</b> 人</span>`,
-    `<span>全部完成 <b>${students.filter((s) => courseComplete(rec(s))).length}</b> 人</span>`,
+    `<span>全部完成 <b>${students.filter((s) => courseComplete(rec(s), course)).length}</b> 人</span>`,
   ].join('');
 
   const cell = (r, p) => (r?.done[p] ? `${fmt(r.best[p])}<small>（${r.done[p]} 次）</small>` : '—');
@@ -183,7 +187,7 @@ export async function statsPage(ctx) {
       </div>
       <section class="card">
         <h2>期末加分</h2>
-        <p class="hint">歷屆練習每課完成一次加 0.5 分（計入第一次完成時的學期）；本學期本年級每一課的三卷與歷屆都完成，學期全勤加 3 分。</p>
+        <p class="hint">歷屆練習每課完成一次加 0.5 分（計入第一次完成時的學期）；本學期本年級每一課的三卷與歷屆都完成，學期全勤加 3 分（沒有歷屆題的課只看三卷）。</p>
         ${bonusTable(students, data, klass, state.termId)}
       </section>
       ${courses.length

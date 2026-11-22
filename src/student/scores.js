@@ -17,13 +17,13 @@ function attendanceRow(c) {
   return `
     <div class="att-row">
       <a href="#/course/${esc(c.id)}">${esc(c.title)}</a>
-      <div class="chips">${chip(c.basic, '基礎')}${chip(c.advanced, '進階')}${chip(c.challenge, '挑戰')}${chip(c.past, '歷屆')}</div>
+      <div class="chips">${chip(c.basic, '基礎')}${chip(c.advanced, '進階')}${chip(c.challenge, '挑戰')}${c.has_past === false ? '' : chip(c.past, '歷屆')}</div>
     </div>`;
 }
 
 function termCard(term) {
   const att = term.attendance;
-  const done = att.courses.filter((c) => c.basic && c.advanced && c.challenge && c.past).length;
+  const done = att.courses.filter((c) => c.basic && c.advanced && c.challenge && (c.past || c.has_past === false)).length;
   const attendance = att.total
     ? `
       <div class="term-line">

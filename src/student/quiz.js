@@ -26,6 +26,7 @@ function formatScore(value) {
 // ---------------------------------------------------------------------
 
 function paperStatus(p) {
+  if (p.pool === 0) return p.paper === 'past' ? '本課沒有歷屆試題，全勤只看三卷' : '這一卷還沒有題目';
   if (p.paper === 'past') {
     return p.completed ? `已練習 ${p.completed} 次` : '尚未練習';
   }
@@ -35,6 +36,7 @@ function paperStatus(p) {
 }
 
 function paperAction(p) {
+  if (p.pool === 0) return { label: '沒有題目', disabled: true };
   if (!p.unlocked) return { label: '完成基礎卷後開放', disabled: true };
   if (p.open_session) return { label: '繼續作答' };
   if (p.max_attempts && p.used >= p.max_attempts) return { label: '已寫滿三次', disabled: true };
