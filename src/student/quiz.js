@@ -1,6 +1,7 @@
 import { isSessionError } from '../lib/supabase.js';
 import { esc } from '../lib/ui.js';
 import { LETTERS, optionOrder, shownLetter, remapLetters, optionsInImage } from './shuffle.js';
+import { unread, readSeconds, countdown } from './gate.js';
 
 export const PAPERS = {
   basic: { name: '基礎卷', tag: '必寫', tagClass: 'must' },
@@ -178,6 +179,8 @@ function passageCard(group) {
     </details>`;
 }
 
+const WRONG_NOTE = '<p class="gate-note warn">這題答錯了。請把下面的詳解看完、寫進筆記，確認自己學會了，再到下一題。</p>';
+
 function resultBlock(courseId, q, order) {
   const r = q.result;
   const explains = order.map((letter, i) => `
@@ -206,7 +209,7 @@ function resultBlock(courseId, q, order) {
 }
 
 // order：畫面各位置要放的原代號（見 shuffle.js）；按鈕送出的仍是原代號
-function questionBody(courseId, q, order, hint = '選好答案就會立刻看到解析，選了就不能更改。') {
+function questionBody(courseId, q, order, hint = '選好答案就會立刻看到解析，選了就不能更改；讀完解析才能到下一題。') {
   const answered = Boolean(q.result);
   const options = order.map((letter, i) => {
     const classes = ['opt'];
@@ -242,6 +245,13 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
   const { session, questions } = data;
   const base = `#/course/${courseId}/session/${sessionId}`;
   let index = indexParam ? Number(indexParam) - 1 : null;
+
+  // 有題目的解析還沒讀完：不管要去哪一題、或要看成績，都先帶回那一題
+  const waiting = questions.findIndex((item) => item.result && unread.has(session.id, item.id));
+  if (waiting >= 0 && index !== waiting) {
+    location.replace(`${base}/${waiting + 1}`);
+    return;
+  }
   if (index == null || !(index >= 0 && index < questions.length)) {
     if (session.submitted) return summaryPage(ctx, shell, courseId, data);
     index = Math.max(questions.findIndex((q) => !q.result), 0);
@@ -252,6 +262,10 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
   const group = q.group_id ? data.groups[q.group_id] : null;
   const prev = index > 0 ? `${base}/${index}` : null;
   const next = index < questions.length - 1 ? `${base}/${index + 2}` : null;
+  const order = optionOrder(q, `${session.id}:${q.id}`);
+  const gated = Boolean(q.result) && unread.has(session.id, q.id);
+  const onward = next ?? (session.submitted ? base : null);
+  const onwardLabel = next ? '下一題 ›' : '看成績 ›';
 
   shell(ctx, {
     back: { href: `#/course/${courseId}`, label: session.course_title },
@@ -261,12 +275,12 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
       ${group ? passageCard(group) : ''}
       <div class="card question">
         <div class="q-meta">第 ${index + 1} 題${pastLabel(q)}${q.result ? favButton(q) : ''}</div>
-        <div data-question>${questionBody(courseId, q, optionOrder(q, `${session.id}:${q.id}`))}</div>
+        <div data-question>${questionBody(courseId, q, order)}</div>
       </div>
       <div class="q-foot">
-        ${prev ? `<a class="btn ghost" href="${prev}">‹ 上一題</a>` : '<span></span>'}
-        ${next ? `<a class="btn" href="${next}">下一題 ›</a>`
-               : session.submitted ? `<a class="btn" href="${base}">看成績 ›</a>` : '<span></span>'}
+        ${prev && !gated ? `<a class="btn ghost" href="${prev}">‹ 上一題</a>` : '<span></span>'}
+        ${gated ? '<button class="btn" type="button" data-gate></button>'
+          : onward ? `<a class="btn" href="${onward}">${onwardLabel}</a>` : '<span></span>'}
       </div>`,
   });
 
@@ -274,6 +288,19 @@ export async function sessionPage(ctx, shell, courseId, sessionId, indexParam) {
     button.addEventListener('click', () => answer(ctx, shell, courseId, data, index, button.dataset.answer));
   }
   bindFavorite(ctx, q);
+  if (gated) readGate(ctx, courseId, session, q, order, onward, onwardLabel);
+}
+
+// 讀解析關卡：至少停留幾秒才能前進；答錯時提示看詳解、做筆記、確認學會（見 gate.js）
+function readGate(ctx, courseId, session, q, order, onward, onwardLabel) {
+  const box = ctx.app.querySelector('[data-question]');
+  const button = ctx.app.querySelector('[data-gate]');
+  if (!q.result.correct) box.querySelector('.verdict').insertAdjacentHTML('afterend', WRONG_NOTE);
+  countdown(button, readSeconds(q.result), q.result.correct ? onwardLabel : `我學會了，${onwardLabel}`, () => {
+    unread.clear(session.id, q.id);
+    if (onward) location.hash = onward;
+    else button.outerHTML = '<span></span>';
+  });
 }
 
 async function answer(ctx, shell, courseId, data, index, letter) {
@@ -286,6 +313,7 @@ async function answer(ctx, shell, courseId, data, index, letter) {
     });
     if (!res.ok) throw new Error(res.error);
     q.result = res.result;
+    unread.add(data.session.id, q.id);
     Object.assign(data.session, { submitted: res.submitted, score: res.score, correct_count: res.correct_count });
   } catch (error) {
     if (isSessionError(error)) return ctx.fail(error);
@@ -442,6 +470,7 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
 
   const q = { ...data.question, result: data.result };
   let round = data.retry.count;  // 每按一次「再重做一次」就換一次選項位置
+  let justAnswered = false;
   render();
 
   function render() {
@@ -471,11 +500,19 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
     for (const button of ctx.app.querySelectorAll('[data-answer]')) {
       button.addEventListener('click', () => retry(button.dataset.answer));
     }
-    ctx.app.querySelector('[data-again]')?.addEventListener('click', () => {
+    const again = ctx.app.querySelector('[data-again]');
+    const redo = () => {
       q.result = null;
       round = data.retry.count;
       render();
-    });
+    };
+    // 重做又答錯：先讀完解析才能再重做
+    if (again && justAnswered && !q.result.correct) {
+      ctx.app.querySelector('.verdict').insertAdjacentHTML('afterend', WRONG_NOTE.replace('再到下一題', '再重做'));
+      countdown(again, readSeconds(q.result), '再重做一次', redo);
+    }
+    else again?.addEventListener('click', redo);
+    justAnswered = false;
     bindFavorite(ctx, q);
   }
 
@@ -486,6 +523,7 @@ export async function questionPage(ctx, shell, courseId, questionId, mode) {
       if (!res.ok) throw new Error(res.error);
       q.result = res.result;
       data.retry.count += 1;
+      justAnswered = true;
     } catch (error) {
       if (isSessionError(error)) return ctx.fail(error);
       for (const button of ctx.app.querySelectorAll('[data-answer]')) button.disabled = false;

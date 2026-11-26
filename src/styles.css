@@ -320,6 +320,9 @@ select.input { appearance: auto; }
 .remedy small { display: block; color: var(--muted); }
 .q-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .q-foot .btn { width: auto; display: inline-block; padding: 12px 18px; margin-top: 0; }
+.gate-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--primary-soft); color: var(--primary); font-size: 15px; font-weight: 500; }
+.gate-note.warn { background: var(--warn-soft); color: var(--warn); }
+.gate-note.ok { background: var(--ok-soft); color: var(--ok); }
 .result-card .big-score { font-size: 20px; }
 .big-score b { font-size: 48px; color: var(--primary); }
 .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; flex: none; }
